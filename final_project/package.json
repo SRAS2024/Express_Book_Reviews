@@ -2,10 +2,10 @@
   "name": "express-book-reviews",
   "version": "1.0.0",
   "description": "Server-side book review application with Express, JWT, and session authentication.",
-  "main": "index.js",
+  "main": "final_project/index.js",
   "scripts": {
-    "start": "node index.js",
-    "dev": "nodemon index.js"
+    "start": "node final_project/index.js",
+    "dev": "nodemon final_project/index.js"
   },
   "dependencies": {
     "express": "^4.18.1",
