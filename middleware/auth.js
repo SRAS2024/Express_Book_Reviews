@@ -1,14 +1,16 @@
 const jwt = require("jsonwebtoken");
-const SECRET = "jwt_secret_123";
+
+// Use a consistent secret (same one you use in index.js / login logic)
+const SECRET = "fingerprint_customer";  
 
 function verifyJwt(req, res, next) {
-  // Accept Authorization Bearer or session storage
+  // Look for token in Authorization header or session
   const header = req.headers.authorization || "";
   let token = null;
 
   if (header.startsWith("Bearer ")) {
     token = header.substring(7);
-  } else if (req.session && req.session.authorization && req.session.authorization.accessToken) {
+  } else if (req.session?.authorization?.accessToken) {
     token = req.session.authorization.accessToken;
   }
 
@@ -18,8 +20,8 @@ function verifyJwt(req, res, next) {
 
   try {
     const payload = jwt.verify(token, SECRET);
-    req.user = { username: payload.username };
-    return next();
+    req.user = { username: payload.username }; // attach decoded user info
+    next();
   } catch (err) {
     return res.status(401).json({ message: "Invalid or expired token" });
   }
