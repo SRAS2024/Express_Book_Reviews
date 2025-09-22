@@ -1,13 +1,13 @@
 const express = require("express");
 const session = require("express-session");
 const path = require("path");
-const { verifyJwt } = require("./middleware/auth");
-const customer_routes = require("./router/auth_users").authenticated;
-const genl_routes = require("./router/general").general;
+const { verifyJwt } = require("./final_project/middleware/auth");
+const customer_routes = require("./final_project/router/auth_users").authenticated;
+const genl_routes = require("./final_project/router/general").general;
 
 const app = express();
 
-// Use dynamic port if provided by host, fallback to 5000 locally
+// Use dynamic port for Railway, fallback for local dev
 const PORT = process.env.PORT || 5000;
 
 app.use(express.json());
@@ -21,7 +21,7 @@ app.use(
 );
 
 // Static client
-app.use(express.static(path.join(__dirname, "client")));
+app.use(express.static(path.join(__dirname, "final_project/client")));
 
 // Protect all customer auth routes
 app.use("/customer/auth/*", verifyJwt);
