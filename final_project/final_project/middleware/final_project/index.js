@@ -6,7 +6,9 @@ const customer_routes = require("./router/auth_users").authenticated;
 const genl_routes = require("./router/general").general;
 
 const app = express();
-const PORT = 5000;
+
+// Use dynamic port if provided by host, fallback to 5000 locally
+const PORT = process.env.PORT || 5000;
 
 app.use(express.json());
 app.use(
@@ -28,4 +30,6 @@ app.use("/customer/auth/*", verifyJwt);
 app.use("/customer", customer_routes);
 app.use("/", genl_routes);
 
-app.listen(PORT, () => console.log(`Server is running at http://localhost:${PORT}`));
+app.listen(PORT, "0.0.0.0", () =>
+  console.log(`Server is running on port ${PORT}`)
+);
