@@ -8,8 +8,8 @@
 </head>
 <body>
   <header class="site-header">
-    <h1>Book Review Shop</h1>
-    <nav class="nav">
+    <h1>📚 Book Review Shop</h1>
+    <nav class="nav" aria-label="Main navigation">
       <button id="nav-home" class="btn">Home</button>
       <button id="nav-catalog" class="btn">Catalog</button>
       <button id="nav-login" class="btn">Login</button>
@@ -19,56 +19,77 @@
   </header>
 
   <main id="main">
+    <!-- Hero Section -->
     <section id="hero" class="card">
-      <h2>Welcome</h2>
-      <p>Browse books, read reviews, and share your thoughts after you login.</p>
-      <button id="get-started" class="btn-primary">Get started</button>
+      <h2>Welcome to Book Review Shop</h2>
+      <p>Browse books, search by title or author, read community reviews, and share your own thoughts once logged in.</p>
+      <button id="get-started" class="btn-primary">Get Started</button>
     </section>
 
-    <section id="catalog" class="hidden">
+    <!-- Catalog Section -->
+    <section id="catalog" class="hidden" aria-label="Book Catalog">
       <div class="toolbar card">
-        <input id="search-input" class="input" placeholder="Search by title or author">
+        <input id="search-input" class="input" placeholder="Search by title or author" aria-label="Search books">
         <button id="search-btn" class="btn">Search</button>
         <button id="clear-search" class="btn-secondary">Clear</button>
       </div>
-      <div id="grid" class="grid"></div>
+      <div id="grid" class="grid" aria-live="polite"></div>
     </section>
 
-    <section id="auth" class="hidden">
+    <!-- Authentication Section -->
+    <section id="auth" class="hidden" aria-label="User Authentication">
       <div class="grid-2">
+        <!-- Login -->
         <div class="card">
           <h3>Login</h3>
-          <label>Username <input id="login-user" class="input"></label>
-          <label>Password <input id="login-pass" type="password" class="input"></label>
+          <label for="login-user">Username</label>
+          <input id="login-user" class="input" autocomplete="username">
+
+          <label for="login-pass">Password</label>
+          <input id="login-pass" type="password" class="input" autocomplete="current-password">
+
           <button id="login-btn" class="btn-primary">Login</button>
-          <p id="login-msg" class="msg"></p>
+          <p id="login-msg" class="msg" role="alert"></p>
         </div>
+
+        <!-- Register -->
         <div class="card">
           <h3>Register</h3>
-          <label>Username <input id="reg-user" class="input"></label>
-          <label>Password <input id="reg-pass" type="password" class="input"></label>
+          <label for="reg-user">Username</label>
+          <input id="reg-user" class="input" autocomplete="username">
+
+          <label for="reg-pass">Password</label>
+          <input id="reg-pass" type="password" class="input" autocomplete="new-password">
+
           <button id="register-btn" class="btn">Register</button>
-          <p id="register-msg" class="msg"></p>
+          <p id="register-msg" class="msg" role="alert"></p>
         </div>
       </div>
     </section>
   </main>
 
-  <div id="book-modal" class="modal hidden">
+  <!-- Book Modal -->
+  <div id="book-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="book-info">
     <div class="modal-content card">
-      <button id="modal-close" class="btn-close">×</button>
+      <button id="modal-close" class="btn-close" aria-label="Close modal">×</button>
+
+      <!-- Book Info -->
       <div id="book-info"></div>
+
+      <!-- Review Editor (only for logged-in users) -->
       <div id="review-editor" class="hidden">
-        <h4>Your review</h4>
-        <textarea id="my-review" rows="4" class="input"></textarea>
+        <h4>Your Review</h4>
+        <textarea id="my-review" rows="4" class="input" placeholder="Write your review here..."></textarea>
         <div class="row">
           <button id="save-review" class="btn-primary">Save</button>
           <button id="delete-review" class="btn btn-danger">Delete</button>
         </div>
-        <p id="review-msg" class="msg"></p>
+        <p id="review-msg" class="msg" role="alert"></p>
       </div>
+
+      <!-- All Reviews -->
       <div>
-        <h4>All reviews</h4>
+        <h4>Community Reviews</h4>
         <ul id="reviews-list" class="list"></ul>
       </div>
     </div>
