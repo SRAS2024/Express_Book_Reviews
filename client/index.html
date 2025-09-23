@@ -12,7 +12,28 @@
     <nav class="nav">
       <button id="nav-home" class="btn">Home</button>
       <button id="nav-catalog" class="btn">Catalog</button>
-      <button id="nav-account" class="btn">Account</button>
+      <div id="account-menu" class="dropdown">
+        <button id="nav-account" class="btn">Account</button>
+        <div id="account-dropdown" class="dropdown-content hidden">
+          <div id="auth-section">
+            <h3>Login</h3>
+            <label>Username <input id="login-user" class="input"></label>
+            <label>Password <input id="login-pass" type="password" class="input"></label>
+            <button id="login-btn" class="btn-primary">Login</button>
+            <p id="login-msg" class="msg"></p>
+            <hr>
+            <h3>Register</h3>
+            <label>Username <input id="reg-user" class="input"></label>
+            <label>Password <input id="reg-pass" type="password" class="input"></label>
+            <button id="register-btn" class="btn">Register</button>
+            <p id="register-msg" class="msg"></p>
+          </div>
+          <div id="loggedin-section" class="hidden">
+            <p id="welcome-msg"></p>
+            <button id="nav-logout" class="btn btn-danger">Logout</button>
+          </div>
+        </div>
+      </div>
     </nav>
   </header>
 
@@ -33,31 +54,38 @@
     </section>
   </main>
 
-  <!-- Account modal -->
-  <div id="account-modal" class="modal hidden">
-    <div class="modal-content card">
-      <button id="account-close" class="btn-close">×</button>
-      <div id="account-content"></div>
-    </div>
-  </div>
-
-  <!-- Book modal -->
   <div id="book-modal" class="modal hidden">
     <div class="modal-content card">
       <button id="modal-close" class="btn-close">×</button>
       <div id="book-info"></div>
+
+      <!-- Add Review Button -->
+      <button id="add-review-btn" class="btn-primary">Add Review</button>
+
+      <!-- Review Form -->
       <div id="review-editor" class="hidden">
-        <h4>Your review</h4>
-        <textarea id="my-review" rows="4" class="input"></textarea>
+        <h4>Your Review</h4>
+        <label for="star-rating">Rating:</label>
+        <select id="star-rating" class="input">
+          <option value="1">★☆☆☆☆ (1)</option>
+          <option value="2">★★☆☆☆ (2)</option>
+          <option value="3">★★★☆☆ (3)</option>
+          <option value="4">★★★★☆ (4)</option>
+          <option value="5">★★★★★ (5)</option>
+        </select>
+        <textarea id="my-review" rows="4" class="input" placeholder="Write your review"></textarea>
         <div class="row">
-          <button id="save-review" class="btn-primary">Save</button>
-          <button id="delete-review" class="btn btn-danger">Delete</button>
+          <button id="submit-review" class="btn-primary">Submit</button>
+          <button id="cancel-review" class="btn">Cancel</button>
         </div>
         <p id="review-msg" class="msg"></p>
       </div>
+
+      <!-- Reviews -->
       <div>
-        <h4>All reviews</h4>
+        <h4>All Reviews</h4>
         <ul id="reviews-list" class="list"></ul>
+        <button id="more-reviews" class="btn-secondary hidden">More Reviews</button>
       </div>
     </div>
   </div>
