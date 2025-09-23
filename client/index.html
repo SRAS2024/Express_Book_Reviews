@@ -1,10 +1,10 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Book Review Shop</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <link href="./styles.css" rel="stylesheet" />
+  <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
   <header class="site-header">
@@ -12,107 +12,87 @@
     <nav class="nav">
       <button id="nav-home" class="btn">Home</button>
       <button id="nav-catalog" class="btn">Catalog</button>
-
-      <!-- Account button (visible when logged OUT) -->
       <button id="nav-account" class="btn">Account</button>
-
-      <!-- Username dropdown (visible when logged IN) -->
       <div id="user-dropdown" class="dropdown hidden">
-        <button id="user-btn" class="btn"></button>
-        <div class="dropdown-content card">
-          <button id="logout-btn" class="btn">Logout</button>
+        <button class="btn" id="username-display"></button>
+        <div class="dropdown-content">
+          <button id="logout-btn" class="btn btn-danger">Logout</button>
         </div>
       </div>
     </nav>
   </header>
 
-  <main id="main">
-    <!-- Home -->
+  <main>
+    <!-- Hero -->
     <section id="hero" class="card">
       <h2>Welcome</h2>
       <p>Browse books, read reviews, and share your thoughts after you login.</p>
-      <button id="get-started" class="btn-primary">Get started</button>
+      <button id="get-started" class="btn btn-primary">Get started</button>
     </section>
 
     <!-- Catalog -->
     <section id="catalog" class="hidden">
-      <div class="toolbar card">
-        <input id="search-input" class="input" placeholder="Search by title or author" />
-        <button id="search-btn" class="btn">Search</button>
-        <button id="clear-search" class="btn-secondary">Clear</button>
+      <div class="toolbar">
+        <input id="search-input" class="input" placeholder="Search by title or author"/>
+        <button id="search-btn" class="btn btn-primary">Search</button>
+        <button id="clear-search" class="btn">Clear</button>
       </div>
       <div id="grid" class="grid"></div>
     </section>
 
-    <!-- Account (own page) -->
-    <section id="account" class="hidden">
-      <div class="card auth-card">
-        <!-- Login form -->
-        <div id="login-form">
-          <h3>Login</h3>
-          <label>Username <input id="login-user" class="input" /></label>
-          <label>Password <input id="login-pass" type="password" class="input" /></label>
-          <button id="login-btn" class="btn-primary">Login</button>
-          <p id="login-msg" class="msg"></p>
-          <p class="muted">Please log in to add a review.</p>
-          <a id="show-register" class="link">Create Account</a>
-        </div>
-
-        <!-- Register form (hidden until toggled) -->
-        <div id="register-form" class="hidden">
-          <h3>Create Account</h3>
-          <label>Username <input id="reg-user" class="input" /></label>
-          <label>Password <input id="reg-pass" type="password" class="input" /></label>
-          <button id="register-btn" class="btn">Register</button>
-          <p id="register-msg" class="msg"></p>
-          <a id="show-login" class="link">Back to Login</a>
-        </div>
-      </div>
+    <!-- Account (Login) -->
+    <section id="account" class="card hidden">
+      <h2>Login</h2>
+      <input id="login-username" class="input" placeholder="Username"/>
+      <input id="login-password" type="password" class="input" placeholder="Password"/>
+      <button id="login-btn" class="btn btn-primary">Login</button>
+      <p id="login-msg" class="msg"></p>
+      <p>No account? <span id="go-register" class="link">Create Account</span></p>
     </section>
-  </main>
 
-  <!-- Book Modal -->
-  <div id="book-modal" class="modal hidden">
-    <div class="modal-content card">
-      <button id="modal-close" class="btn-close" aria-label="Close">×</button>
+    <!-- Register -->
+    <section id="register" class="card hidden">
+      <h2>Create Account</h2>
+      <input id="register-username" class="input" placeholder="Username"/>
+      <input id="register-password" type="password" class="input" placeholder="Password"/>
+      <button id="register-btn" class="btn btn-primary">Register</button>
+      <p id="register-msg" class="msg"></p>
+      <p><span id="go-login" class="link">Back to Login</span></p>
+    </section>
 
-      <div id="book-info"></div>
-
-      <div class="row" style="margin-top:8px;">
-        <button id="add-review-btn" class="btn-primary">Add Review</button>
-      </div>
-
-      <div id="review-editor" class="hidden" style="margin-top:12px;">
-        <h4>Your review</h4>
-        <div class="row">
-          <label>Rating
-            <select id="review-stars" class="input" style="max-width:120px;">
-              <option value="5">★★★★★ (5)</option>
-              <option value="4">★★★★☆ (4)</option>
-              <option value="3">★★★☆☆ (3)</option>
-              <option value="2">★★☆☆☆ (2)</option>
-              <option value="1">★☆☆☆☆ (1)</option>
+    <!-- Book Modal -->
+    <div id="book-modal" class="modal hidden">
+      <div class="modal-content card">
+        <button id="modal-close" class="btn-close">&times;</button>
+        <div id="book-info"></div>
+        <button id="add-review" class="btn btn-primary">Add Review</button>
+        <ul id="reviews-list" class="list"></ul>
+        <button id="more-reviews" class="btn hidden">More reviews</button>
+        <div id="review-editor" class="hidden">
+          <label>Rating: 
+            <select id="review-stars">
+              <option value="1">1★</option>
+              <option value="2">2★</option>
+              <option value="3">3★</option>
+              <option value="4">4★</option>
+              <option value="5">5★</option>
             </select>
           </label>
+          <textarea id="my-review" class="input" placeholder="Write your review..."></textarea>
+          <div class="row">
+            <button id="save-review" class="btn btn-primary">Submit</button>
+            <button id="cancel-review" class="btn">Cancel</button>
+          </div>
+          <p id="review-msg" class="msg"></p>
         </div>
-        <textarea id="my-review" rows="4" class="input" placeholder="Share your thoughts"></textarea>
-        <div class="row">
-          <button id="save-review" class="btn-primary">Save</button>
-          <button id="cancel-review" class="btn btn-secondary">Cancel</button>
-          <button id="delete-review" class="btn btn-danger" title="Delete your review">Delete</button>
-        </div>
-        <p id="review-msg" class="msg"></p>
-      </div>
-
-      <div style="margin-top:12px;">
-        <h4>All reviews</h4>
-        <ul id="reviews-list" class="list"></ul>
-        <button id="more-reviews" class="btn-secondary hidden">More reviews</button>
       </div>
     </div>
-  </div>
+  </main>
 
-  <footer class="site-footer">© 2025 Book Review Shop</footer>
-  <script src="./app.js" type="module"></script>
+  <footer class="site-footer">
+    <p>© 2025 Book Review Shop</p>
+  </footer>
+
+  <script src="app.js"></script>
 </body>
 </html>
