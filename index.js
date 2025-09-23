@@ -2,16 +2,18 @@ const express = require("express");
 const session = require("express-session");
 const path = require("path");
 
+// Middleware
 const { verifyJwt } = require("./middleware/auth");
-const customer_routes = require("./auth_users").authenticated;
-const genl_routes = require("./general").general;
+
+// Routers
+const customer_routes = require("./router/auth_users").authenticated;
+const genl_routes = require("./router/general").general;
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Middleware
 app.use(express.json());
-
-// Session only under /customer
 app.use(
   "/customer",
   session({
@@ -21,21 +23,22 @@ app.use(
   })
 );
 
-// Serve client
+// Static client
 app.use(express.static(path.join(__dirname, "client")));
 
-// Protect customer auth routes
+// Protect customer routes that require login
 app.use("/customer/auth/*", verifyJwt);
 
 // Routers
 app.use("/customer", customer_routes);
 app.use("/", genl_routes);
 
-// Fallback to SPA entry
-app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "client", "index.html"));
+// Fallback for unknown routes (optional but useful)
+app.use((req, res) => {
+  res.status(404).json({ message: "Route not found" });
 });
 
-app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
-});
+// Start server
+app.listen(PORT, () =>
+  console.log(`✅ Server is running at http://localhost:${PORT}`)
+);
