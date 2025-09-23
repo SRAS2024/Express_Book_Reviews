@@ -1,19 +1,5 @@
-// Simple in-memory user store
-let users = [
-  // sample user for quick testing: user "test" with password "test"
-  { username: "test", password: "test" }
-];
+// Simple in-memory store for demo purposes.
+// (Persists only while the server process is running.)
+let users = [];
 
-function isValid(username) {
-  return users.some(u => u.username === username);
-}
-
-function authenticateUser(username, password) {
-  return users.find(u => u.username === username && u.password === password);
-}
-
-function addUser(username, password) {
-  users.push({ username, password });
-}
-
-module.exports = { users, isValid, authenticateUser, addUser };
+module.exports = users;
