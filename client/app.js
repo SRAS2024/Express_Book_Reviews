@@ -3,8 +3,8 @@ const tokenKey = "brs_token";
 let currentUsername = null;
 let currentIsbn = null;
 let currentStars = 0;
+let showingAll = false; // controls 5 vs 10
 
-// Auth state
 function setAuthState({ username, token }) {
   currentUsername = username || null;
   if (token) localStorage.setItem(tokenKey, token);
@@ -13,17 +13,12 @@ function setAuthState({ username, token }) {
   $("#nav-register").classList.toggle("hidden", loggedIn);
   $("#nav-logout").classList.toggle("hidden", !loggedIn);
 }
-
-function isLoggedIn() {
-  return Boolean(localStorage.getItem(tokenKey));
-}
-
+function isLoggedIn() { return Boolean(localStorage.getItem(tokenKey)); }
 function authHeader() {
   const t = localStorage.getItem(tokenKey);
   return t ? { Authorization: `Bearer ${t}` } : {};
 }
 
-// Fetch helper
 async function fetchJSON(path, opts = {}) {
   const res = await fetch(path, {
     ...opts,
@@ -31,28 +26,23 @@ async function fetchJSON(path, opts = {}) {
   });
   if (!res.ok) {
     let msg = res.statusText;
-    try {
-      const data = await res.json();
-      msg = data.message || msg;
-    } catch {}
+    try { const data = await res.json(); msg = data.message || msg; } catch {}
     throw new Error(msg);
   }
   return res.json();
 }
 
-// Section switching
 function show(sectionId) {
   ["hero", "catalog", "auth"].forEach(id => $(`#${id}`).classList.add("hidden"));
   $(`#${sectionId}`).classList.remove("hidden");
 }
 
-// Tabs for auth
 function activateTab(which) {
-  const loginActive = which === "login";
-  $("#tab-login").classList.toggle("active", loginActive);
-  $("#tab-register").classList.toggle("active", !loginActive);
-  $("#pane-login").classList.toggle("active", loginActive);
-  $("#pane-register").classList.toggle("active", !loginActive);
+  const isLogin = which === "login";
+  $("#tab-login")?.classList.toggle("active", isLogin);
+  $("#tab-register")?.classList.toggle("active", !isLogin);
+  $("#pane-login")?.classList.toggle("active", isLogin);
+  $("#pane-register")?.classList.toggle("active", !isLogin);
 }
 
 // Catalog
@@ -60,7 +50,6 @@ async function loadCatalog(query) {
   const grid = $("#grid");
   grid.innerHTML = "";
   let books = [];
-
   if (!query) {
     const data = await fetchJSON("/books");
     books = data.books;
@@ -72,12 +61,10 @@ async function loadCatalog(query) {
     [...byTitle.books, ...byAuthor.books].forEach(b => merged.set(b.isbn, b));
     books = [...merged.values()];
   }
-
   if (books.length === 0) {
     grid.innerHTML = `<p class="msg">No books found.</p>`;
     return;
   }
-
   for (const b of books) {
     const card = document.createElement("div");
     card.className = "tile";
@@ -92,25 +79,21 @@ async function loadCatalog(query) {
   }
 }
 
-// Stars
+// Stars helpers
 function renderStars(container, value) {
   const buttons = container.querySelectorAll(".star");
   buttons.forEach(btn => {
     const v = Number(btn.dataset.v);
     btn.classList.toggle("active", v <= value);
-    btn.setAttribute("aria-checked", v === value ? "true" : "false");
+    btn.setAttribute("aria-checked", String(v === value));
   });
 }
-
-// Compute an average rating from text values if they contain a prefix "x| review text"
 function parseRatingFromText(text) {
-  // Accept formats like "5| Great book" or "5 - Great book"
   const m = text.match(/^(\d)\s*[\|\-]\s*(.*)$/);
   if (!m) return { rating: null, text };
   const r = Number(m[1]);
   return { rating: isNaN(r) ? null : r, text: m[2] };
 }
-
 function averageRatingFromReviews(reviewsObj) {
   const vals = [];
   for (const [, txt] of Object.entries(reviewsObj || {})) {
@@ -122,9 +105,22 @@ function averageRatingFromReviews(reviewsObj) {
   return Math.round((sum / vals.length) * 10) / 10;
 }
 
-// Book modal and reviews
+// Build ordered review array with current user first if present
+function buildOrderedReviews(reviewsObj) {
+  const entries = Object.entries(reviewsObj || {});
+  if (!entries.length) return [];
+  const mineIdx = entries.findIndex(([user]) => user === currentUsername);
+  if (mineIdx > -1) {
+    const mine = entries.splice(mineIdx, 1)[0];
+    return [mine, ...entries];
+  }
+  return entries;
+}
+
+// Open book modal and render reviews
 async function openBook(isbn) {
   currentIsbn = isbn;
+  showingAll = false;
   $("#review-msg").textContent = "";
   $("#review-msg").className = "msg";
   $("#my-review").value = "";
@@ -134,64 +130,76 @@ async function openBook(isbn) {
   const book = await fetchJSON(`/isbn/${isbn}`);
   const reviews = await fetchJSON(`/review/${isbn}`).catch(() => ({ reviews: {} }));
 
-  // Book details
   $("#book-info").innerHTML = `
     <h3 id="book-title">${book.title}</h3>
     <p>Author: ${book.author}</p>
     <p>ISBN: ${book.isbn}</p>
   `;
 
-  // Community reviews list
-  const list = $("#reviews-list");
-  list.innerHTML = "";
-  const rObj = reviews.reviews || {};
-  const avg = averageRatingFromReviews(rObj);
-  $("#avg-rating").textContent = avg ? `Average rating: ${avg} out of 5` : "Not yet rated";
-
-  const entries = Object.entries(rObj);
-  if (entries.length === 0) {
-    const li = document.createElement("li");
-    li.textContent = "No reviews yet";
-    list.appendChild(li);
-  } else {
-    entries.forEach(([user, text]) => {
-      const { rating, text: body } = parseRatingFromText(text);
-      const li = document.createElement("li");
-      li.innerHTML = `
-        <div><strong>${user}</strong>${rating ? ` • ${"★".repeat(rating)}` : ""}</div>
-        <div>${body}</div>
-      `;
-      list.appendChild(li);
-    });
-  }
-
-  // Editor visibility
-  const hasToken = isLoggedIn();
-  $("#review-editor").classList.toggle("hidden", !hasToken);
-
+  renderReviewsList(reviews.reviews || {});
+  $("#review-editor").classList.toggle("hidden", !isLoggedIn());
   $("#book-modal").classList.remove("hidden");
 }
 
-// Add Review button behavior
+function renderReviewsList(reviewsObj) {
+  const list = $("#reviews-list");
+  list.innerHTML = "";
+
+  const ordered = buildOrderedReviews(reviewsObj);
+  const avg = averageRatingFromReviews(reviewsObj);
+  $("#avg-rating").textContent = avg ? `Average rating: ${avg} out of 5` : "Not yet rated";
+
+  if (ordered.length === 0) {
+    const li = document.createElement("li");
+    li.textContent = "No reviews yet";
+    list.appendChild(li);
+    $("#more-reviews").classList.add("hidden");
+    return;
+  }
+
+  const limit = showingAll ? Math.min(10, ordered.length) : Math.min(5, ordered.length);
+  for (let i = 0; i < limit; i++) {
+    const [user, text] = ordered[i];
+    const { rating, text: body } = parseRatingFromText(text);
+    const li = document.createElement("li");
+    li.innerHTML = `
+      <div><strong>${user}</strong>${rating ? ` • ${"★".repeat(rating)}` : ""}</div>
+      <div>${body}</div>
+    `;
+    list.appendChild(li);
+  }
+
+  // Toggle visibility of More reviews
+  if (ordered.length > limit) {
+    $("#more-reviews").classList.remove("hidden");
+    $("#more-reviews").textContent = showingAll ? "Show fewer" : "More reviews";
+  } else {
+    $("#more-reviews").classList.add("hidden");
+  }
+}
+
+// Add Review entry button
 $("#add-review-btn").addEventListener("click", () => {
   if (!isLoggedIn()) {
-    // Route to login pane and show hint
     show("auth");
     activateTab("login");
     $("#login-msg").textContent = "Please log in to write a review";
     $("#login-msg").className = "msg";
     return;
   }
-  // If logged in, open editor inside the modal
   $("#review-editor").classList.remove("hidden");
-  // Keep the modal open
-  if (currentIsbn) {
-    // no-op, already open
-  }
 });
 
-// Save review
-$("#save-review").onclick = async () => {
+// Star rating click
+$("#my-stars").addEventListener("click", e => {
+  const btn = e.target.closest(".star");
+  if (!btn) return;
+  currentStars = Number(btn.dataset.v);
+  renderStars($("#my-stars"), currentStars);
+});
+
+// Submit and cancel
+$("#save-review").addEventListener("click", async () => {
   if (!currentIsbn) return;
   const text = $("#my-review").value.trim();
   if (!text) {
@@ -199,9 +207,7 @@ $("#save-review").onclick = async () => {
     $("#review-msg").className = "msg error";
     return;
   }
-  // Prefix rating to text so older backend can still store it
   const payload = currentStars ? `${currentStars}| ${text}` : text;
-
   try {
     const out = await fetchJSON(`/customer/auth/review/${currentIsbn}`, {
       method: "PUT",
@@ -210,16 +216,30 @@ $("#save-review").onclick = async () => {
     });
     $("#review-msg").textContent = out.message || "Saved";
     $("#review-msg").className = "msg success";
-    // Refresh the modal details
-    openBook(currentIsbn);
+    const fresh = await fetchJSON(`/review/${currentIsbn}`).catch(() => ({ reviews: {} }));
+    // Re-render with my review shown first
+    renderReviewsList(fresh.reviews || {});
+    // Keep editor visible with entered values cleared
+    $("#my-review").value = "";
+    currentStars = 0;
+    renderStars($("#my-stars"), currentStars);
   } catch (e) {
     $("#review-msg").textContent = e.message;
     $("#review-msg").className = "msg error";
   }
-};
+});
+
+$("#cancel-review").addEventListener("click", () => {
+  $("#review-editor").classList.add("hidden");
+  $("#review-msg").textContent = "";
+  $("#review-msg").className = "msg";
+  $("#my-review").value = "";
+  currentStars = 0;
+  renderStars($("#my-stars"), currentStars);
+});
 
 // Delete review
-$("#delete-review").onclick = async () => {
+$("#delete-review").addEventListener("click", async () => {
   if (!currentIsbn) return;
   try {
     const out = await fetchJSON(`/customer/auth/review/${currentIsbn}`, {
@@ -228,12 +248,23 @@ $("#delete-review").onclick = async () => {
     });
     $("#review-msg").textContent = out.message || "Deleted";
     $("#review-msg").className = "msg success";
-    openBook(currentIsbn);
+    const fresh = await fetchJSON(`/review/${currentIsbn}`).catch(() => ({ reviews: {} }));
+    renderReviewsList(fresh.reviews || {});
+    $("#review-editor").classList.add("hidden");
   } catch (e) {
     $("#review-msg").textContent = e.message;
     $("#review-msg").className = "msg error";
   }
-};
+});
+
+// More reviews toggle
+$("#more-reviews").addEventListener("click", () => {
+  showingAll = !showingAll;
+  // Re-fetch current reviews to ensure ordering stays correct
+  fetchJSON(`/review/${currentIsbn}`)
+    .then(data => renderReviewsList(data.reviews || {}))
+    .catch(() => renderReviewsList({}));
+});
 
 // Modal close
 function closeModal() {
@@ -243,18 +274,12 @@ function closeModal() {
   $("#my-review").value = "";
   currentIsbn = null;
   currentStars = 0;
+  showingAll = false;
+  renderStars($("#my-stars"), currentStars);
 }
 $("#modal-close").addEventListener("click", closeModal);
 
-// Star rating interactions
-$("#my-stars").addEventListener("click", e => {
-  const btn = e.target.closest(".star");
-  if (!btn) return;
-  currentStars = Number(btn.dataset.v);
-  renderStars($("#my-stars"), currentStars);
-});
-
-// Navigation
+// Nav
 $("#get-started").addEventListener("click", () => { show("catalog"); loadCatalog(); });
 $("#nav-home").addEventListener("click", () => show("hero"));
 $("#nav-catalog").addEventListener("click", () => { show("catalog"); loadCatalog(); });
@@ -264,12 +289,13 @@ $("#nav-register").addEventListener("click", () => { show("auth"); activateTab("
 $("#search-btn").addEventListener("click", () => loadCatalog($("#search-input").value));
 $("#clear-search").addEventListener("click", () => { $("#search-input").value = ""; loadCatalog(); });
 
-// Auth
-$("#tab-login").addEventListener("click", () => activateTab("login"));
-$("#tab-register").addEventListener("click", () => activateTab("register"));
-$("#goto-register").addEventListener("click", () => activateTab("register"));
+// Auth tabs
+$("#tab-login")?.addEventListener("click", () => activateTab("login"));
+$("#tab-register")?.addEventListener("click", () => activateTab("register"));
+$("#goto-register")?.addEventListener("click", () => activateTab("register"));
 
-$("#login-btn").addEventListener("click", async () => {
+// Login
+$("#login-btn")?.addEventListener("click", async () => {
   const username = $("#login-user").value.trim();
   const password = $("#login-pass").value;
   $("#login-msg").textContent = "";
@@ -290,7 +316,8 @@ $("#login-btn").addEventListener("click", async () => {
   }
 });
 
-$("#register-btn").addEventListener("click", async () => {
+// Register
+$("#register-btn")?.addEventListener("click", async () => {
   const username = $("#reg-user").value.trim();
   const password = $("#reg-pass").value;
   $("#register-msg").textContent = "";
@@ -302,7 +329,6 @@ $("#register-btn").addEventListener("click", async () => {
     });
     $("#register-msg").textContent = out.message || "Registered";
     $("#register-msg").className = "msg success";
-    // After successful registration, move to login tab
     activateTab("login");
   } catch (e) {
     $("#register-msg").textContent = e.message;
@@ -310,6 +336,7 @@ $("#register-btn").addEventListener("click", async () => {
   }
 });
 
+// Logout
 $("#nav-logout").addEventListener("click", () => {
   localStorage.removeItem(tokenKey);
   setAuthState({ username: null });
