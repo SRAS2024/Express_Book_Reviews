@@ -4,21 +4,22 @@ document.addEventListener("DOMContentLoaded", () => {
   let currentUsername = null;
 
   function setAuthState({ username, token }) {
-    if (typeof token === "string") localStorage.setItem(tokenKey, token);
+    if (token) localStorage.setItem(tokenKey, token);
     if (username) currentUsername = username;
 
     const loggedIn = Boolean(localStorage.getItem(tokenKey));
     const accountLabel = $("#account-label");
     const dropdown = $("#account-dropdown");
-    const signedOut = $("#signed-out");
 
     if (loggedIn && currentUsername) {
-      if (signedOut) signedOut.classList.add("hidden");
       accountLabel.textContent = currentUsername;
+      dropdown.classList.add("hidden");
+      $("#signed-out").classList.add("hidden");
     } else {
-      if (signedOut) signedOut.classList.remove("hidden");
       accountLabel.textContent = "Account";
       dropdown.classList.add("hidden");
+      $("#signed-out").classList.remove("hidden");
+      $("#register-card").classList.add("hidden");
       currentUsername = null;
     }
   }
@@ -35,14 +36,14 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     if (!res.ok) {
       let msg = res.statusText;
-      try { const j = await res.json(); if (j && j.message) msg = j.message; } catch {}
+      try { const j = await res.json(); if (j.message) msg = j.message; } catch {}
       throw new Error(msg);
     }
     return res.json();
   }
 
   function show(sectionId) {
-    ["hero", "catalog"].forEach(id => {
+    ["hero", "catalog", "account"].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.classList.add("hidden");
     });
@@ -50,28 +51,17 @@ document.addEventListener("DOMContentLoaded", () => {
     if (tgt) tgt.classList.remove("hidden");
   }
 
-  async function loadCatalog(query) {
+  async function loadCatalog() {
     const grid = $("#grid");
     grid.innerHTML = "";
     let books = [];
     try {
-      if (!query) {
-        const data = await fetchJSON("/books");
-        books = data.books;
-      } else {
-        const q = query.trim().toLowerCase();
-        const byTitle = await fetchJSON(`/title/${encodeURIComponent(q)}`).catch(() => ({ books: [] }));
-        const byAuthor = await fetchJSON(`/author/${encodeURIComponent(q)}`).catch(() => ({ books: [] }));
-        const merged = new Map();
-        [...byTitle.books, ...byAuthor.books].forEach(b => merged.set(b.isbn, b));
-        books = [...merged.values()];
-      }
+      const data = await fetchJSON("/books");
+      books = data.books;
     } catch (e) {
-      console.error(e);
-      grid.innerHTML = `<div class="card">Failed to load catalog: ${e.message}</div>`;
+      grid.innerHTML = `<div class="card">Error loading books: ${e.message}</div>`;
       return;
     }
-
     for (const b of books) {
       const card = document.createElement("div");
       card.className = "tile";
@@ -87,79 +77,53 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function openBook(isbn) {
-    let book, reviews;
-    try {
-      book = await fetchJSON(`/isbn/${isbn}`);
-      reviews = await fetchJSON(`/review/${isbn}`).catch(() => ({ reviews: {} }));
-    } catch (e) {
-      alert(`Failed to load book: ${e.message}`);
-      return;
-    }
+    const book = await fetchJSON(`/isbn/${isbn}`);
+    const reviews = await fetchJSON(`/review/${isbn}`).catch(() => ({ reviews: {} }));
 
-    $("#book-info").innerHTML = `
-      <h3 id="book-title">${book.title}</h3>
-      <p>Author: ${book.author}</p>
-      <p>ISBN: ${book.isbn}</p>
-    `;
+    $("#book-info").innerHTML = `<h3>${book.title}</h3><p>Author: ${book.author}</p><p>ISBN: ${book.isbn}</p>`;
     renderReviews(reviews.reviews || {});
 
-    // Add Review flow
-    $("#review-editor").classList.add("hidden");
     $("#add-review-btn").onclick = () => {
-      const hasToken = Boolean(localStorage.getItem(tokenKey));
-      if (!hasToken) {
-        const loginMsg = $("#login-msg");
-        if (loginMsg) loginMsg.textContent = "Please log in to add a review.";
-        openAccountModal();
+      if (!localStorage.getItem(tokenKey)) {
+        show("account");
+        $("#login-msg").textContent = "Please log in to add a review.";
         return;
       }
       $("#review-editor").classList.remove("hidden");
-      $("#my-review").focus();
     };
 
     $("#submit-review").onclick = async () => {
+      const stars = $("#star-rating").value;
       const text = $("#my-review").value.trim();
-      const stars = parseInt($("#star-rating").value, 10);
-      if (!text) {
-        $("#review-msg").textContent = "Review cannot be empty.";
-        return;
-      }
-      try {
-        const out = await fetchJSON(`/customer/auth/review/${isbn}`, {
-          method: "PUT",
-          headers: authHeader(),
-          body: JSON.stringify({ review: `${"★".repeat(stars)}${"☆".repeat(5 - stars)} - ${text}` })
-        });
-        $("#review-msg").textContent = out.message;
-        $("#review-editor").classList.add("hidden");
-        $("#my-review").value = "";
-        renderReviews(out.reviews);
-      } catch (e) {
-        $("#review-msg").textContent = e.message;
-      }
+      const reviewText = `${"★".repeat(stars)}${"☆".repeat(5 - stars)} - ${text}`;
+      const out = await fetchJSON(`/customer/auth/review/${isbn}`, {
+        method: "PUT",
+        headers: authHeader(),
+        body: JSON.stringify({ review: reviewText })
+      });
+      renderReviews(out.reviews);
+      $("#review-editor").classList.add("hidden");
+      $("#my-review").value = "";
     };
 
     $("#cancel-review").onclick = () => {
       $("#review-editor").classList.add("hidden");
       $("#my-review").value = "";
-      $("#review-msg").textContent = "";
     };
 
-    openBookModal();
+    $("#book-modal").classList.remove("hidden");
   }
 
   function renderReviews(reviews) {
     const list = $("#reviews-list");
     list.innerHTML = "";
-    const entries = Object.entries(reviews || {});
+    const entries = Object.entries(reviews);
     const firstFive = entries.slice(0, 5);
-
     firstFive.forEach(([user, text]) => {
       const li = document.createElement("li");
       li.textContent = `${user}: ${text}`;
       list.appendChild(li);
     });
-
     const moreBtn = $("#more-reviews");
     if (entries.length > 5) {
       moreBtn.classList.remove("hidden");
@@ -177,109 +141,52 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  /* Modal helpers */
-  function openBookModal() {
-    const m = $("#book-modal");
-    m.classList.remove("hidden");
-    m.setAttribute("aria-hidden", "false");
-  }
-  function closeBookModal() {
-    const m = $("#book-modal");
-    m.classList.add("hidden");
-    m.setAttribute("aria-hidden", "true");
-    $("#review-msg").textContent = "";
-    $("#my-review").value = "";
-  }
-  function openAccountModal() {
-    const m = $("#account-modal");
-    m.classList.remove("hidden");
-    m.setAttribute("aria-hidden", "false");
-  }
-  function closeAccountModal() {
-    const m = $("#account-modal");
-    m.classList.add("hidden");
-    m.setAttribute("aria-hidden", "true");
-    const loginMsg = $("#login-msg");
-    const regMsg = $("#register-msg");
-    if (loginMsg) loginMsg.textContent = "";
-    if (regMsg) regMsg.textContent = "";
-  }
-
-  /* Event bindings */
-  $("#modal-close").addEventListener("click", closeBookModal);
-  $("#account-close").addEventListener("click", closeAccountModal);
-
+  $("#modal-close").addEventListener("click", () => $("#book-modal").classList.add("hidden"));
   $("#get-started").addEventListener("click", () => { show("catalog"); loadCatalog(); });
-  $("#nav-home").addEventListener("click", () => { show("hero"); });
+  $("#nav-home").addEventListener("click", () => show("hero"));
   $("#nav-catalog").addEventListener("click", () => { show("catalog"); loadCatalog(); });
+  $("#nav-account").addEventListener("click", () => show("account"));
 
-  // Account button behavior
-  document.addEventListener("click", (e) => {
-    const dropdown = $("#account-dropdown");
-    const accountBtn = $("#nav-account");
-    const loggedIn = Boolean(localStorage.getItem(tokenKey));
-
-    if (e.target === accountBtn || accountBtn.contains(e.target)) {
-      if (loggedIn) {
-        dropdown.classList.toggle("hidden");
-      } else {
-        openAccountModal();
-      }
-      return;
-    }
-
-    if (!dropdown.contains(e.target)) {
-      dropdown.classList.add("hidden");
-    }
-  });
-
-  $("#search-btn").addEventListener("click", () => loadCatalog($("#search-input").value));
-  $("#clear-search").addEventListener("click", () => { $("#search-input").value = ""; loadCatalog(); });
-
-  /* Auth actions */
   $("#login-btn").addEventListener("click", async () => {
     const username = $("#login-user").value.trim();
     const password = $("#login-pass").value;
-    const msg = $("#login-msg");
-    msg.textContent = "";
     try {
       const out = await fetchJSON("/customer/login", {
         method: "POST",
         body: JSON.stringify({ username, password })
       });
       setAuthState({ username: out.username, token: out.accessToken });
-      msg.textContent = "Login successful";
+      show("hero");
     } catch (e) {
-      msg.textContent = e.message;
+      $("#login-msg").textContent = e.message;
     }
   });
 
   $("#register-btn").addEventListener("click", async () => {
     const username = $("#reg-user").value.trim();
     const password = $("#reg-pass").value;
-    const msg = $("#register-msg");
-    msg.textContent = "";
     try {
       const out = await fetchJSON("/register", {
         method: "POST",
         body: JSON.stringify({ username, password })
       });
-      msg.textContent = out.message;
+      $("#register-msg").textContent = out.message;
     } catch (e) {
-      msg.textContent = e.message;
+      $("#register-msg").textContent = e.message;
     }
+  });
+
+  $("#link-create-account").addEventListener("click", e => {
+    e.preventDefault();
+    $("#register-card").classList.remove("hidden");
   });
 
   $("#logout-btn").addEventListener("click", () => {
     localStorage.removeItem(tokenKey);
     setAuthState({ username: null });
-    closeBookModal();
-    closeAccountModal();
     show("hero");
   });
 
-  /* Init */
   setAuthState({ username: null });
   show("hero");
-  loadCatalog();
 });
