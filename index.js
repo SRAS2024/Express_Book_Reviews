@@ -2,36 +2,44 @@ const express = require("express");
 const session = require("express-session");
 const path = require("path");
 
-// Adjusted paths because index.js is now at root
+// Import middleware + routes
 const { verifyJwt } = require("./middleware/auth");
-const customer_routes = require("./router/auth_users").authenticated;
-const genl_routes = require("./router/general").general;
+const customer_routes = require("./auth_users").authenticated;
+const genl_routes = require("./general").general;
 
 const app = express();
-
-// Use dynamic port for Railway, fallback for local dev
 const PORT = process.env.PORT || 5000;
 
+// Parse JSON
 app.use(express.json());
+
+// Session middleware for customer routes
 app.use(
   "/customer",
   session({
     secret: "fingerprint_customer",
     resave: true,
-    saveUninitialized: true
+    saveUninitialized: true,
   })
 );
 
-// Serve static files from client folder
+// Serve static frontend (client folder)
 app.use(express.static(path.join(__dirname, "client")));
 
-// Protect all customer auth routes
+// Protect customer auth routes with JWT
 app.use("/customer/auth/*", verifyJwt);
 
-// Routers
+// Register routers
 app.use("/customer", customer_routes);
 app.use("/", genl_routes);
 
-app.listen(PORT, "0.0.0.0", () =>
-  console.log(`Server is running on port ${PORT}`)
+// Catch-all: serve index.html for unknown routes
+// This lets front-end navigation work correctly
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "client", "index.html"));
+});
+
+// Start server
+app.listen(PORT, () =>
+  console.log(`✅ Server running at http://localhost:${PORT}`)
 );
