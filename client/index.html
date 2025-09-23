@@ -19,14 +19,12 @@
   </header>
 
   <main id="main">
-    <!-- Hero -->
     <section id="hero" class="card">
       <h2>Welcome to Book Review Shop</h2>
       <p>Browse books, search by title or author, read community reviews, and share your own thoughts after you log in.</p>
       <button id="get-started" class="btn-primary">Get Started</button>
     </section>
 
-    <!-- Catalog -->
     <section id="catalog" class="hidden" aria-label="Book Catalog">
       <div class="toolbar card">
         <input id="search-input" class="input" placeholder="Search by title or author" aria-label="Search books">
@@ -36,7 +34,6 @@
       <div id="grid" class="grid" aria-live="polite"></div>
     </section>
 
-    <!-- Auth with tabs -->
     <section id="auth" class="hidden" aria-label="User Authentication">
       <div class="card tabs">
         <div class="tab-bar">
@@ -77,17 +74,18 @@
   <!-- Book Modal -->
   <div id="book-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="book-title">
     <div class="modal-content card">
-      <div class="modal-header">
-        <button id="modal-close" class="btn-close" aria-label="Close modal">×</button>
-        <div class="modal-actions">
-          <button id="add-review-btn" class="btn">Add Review</button>
-        </div>
-      </div>
+      <button id="modal-close" class="btn-close" aria-label="Close modal">×</button>
 
+      <!-- Book Info -->
       <div id="book-info" class="book-info"></div>
 
+      <!-- Add Review entry point under book info -->
+      <div class="row" style="margin: 0 24px 8px;">
+        <button id="add-review-btn" class="btn">Add Review</button>
+      </div>
+
       <!-- Your review editor -->
-      <div id="review-editor" class="hidden">
+      <div id="review-editor" class="hidden" style="margin: 0 24px;">
         <h4>Your Review</h4>
 
         <div class="stars" id="my-stars" aria-label="Your star rating" role="radiogroup">
@@ -99,20 +97,25 @@
         </div>
 
         <textarea id="my-review" rows="4" class="input" placeholder="Write your review here"></textarea>
-        <div class="row">
-          <button id="save-review" class="btn-primary">Save</button>
-          <button id="delete-review" class="btn btn-danger">Delete</button>
+        <div class="row" style="justify-content: flex-end;">
+          <button id="cancel-review" class="btn-secondary">Cancel</button>
+          <button id="save-review" class="btn-primary">Submit</button>
         </div>
         <p id="review-msg" class="msg" role="alert"></p>
       </div>
 
       <!-- Community reviews -->
-      <div>
+      <div style="margin: 0 24px 16px;">
         <div class="reviews-header">
           <h4>Community Reviews</h4>
           <div id="avg-rating" class="avg-rating"></div>
         </div>
         <ul id="reviews-list" class="list"></ul>
+
+        <!-- More reviews link -->
+        <div class="row" style="justify-content: flex-end;">
+          <button id="more-reviews" class="linklike">More reviews</button>
+        </div>
       </div>
     </div>
   </div>
