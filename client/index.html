@@ -8,7 +8,7 @@
 </head>
 <body>
   <header class="site-header">
-    <h1>📚 Book Review Shop</h1>
+    <h1>Book Review Shop</h1>
     <nav class="nav" aria-label="Main navigation">
       <button id="nav-home" class="btn">Home</button>
       <button id="nav-catalog" class="btn">Catalog</button>
@@ -19,14 +19,14 @@
   </header>
 
   <main id="main">
-    <!-- Hero Section -->
+    <!-- Hero -->
     <section id="hero" class="card">
       <h2>Welcome to Book Review Shop</h2>
-      <p>Browse books, search by title or author, read community reviews, and share your own thoughts once logged in.</p>
+      <p>Browse books, search by title or author, read community reviews, and share your own thoughts after you log in.</p>
       <button id="get-started" class="btn-primary">Get Started</button>
     </section>
 
-    <!-- Catalog Section -->
+    <!-- Catalog -->
     <section id="catalog" class="hidden" aria-label="Book Catalog">
       <div class="toolbar card">
         <input id="search-input" class="input" placeholder="Search by title or author" aria-label="Search books">
@@ -36,12 +36,15 @@
       <div id="grid" class="grid" aria-live="polite"></div>
     </section>
 
-    <!-- Authentication Section -->
+    <!-- Auth with tabs -->
     <section id="auth" class="hidden" aria-label="User Authentication">
-      <div class="grid-2">
-        <!-- Login -->
-        <div class="card">
-          <h3>Login</h3>
+      <div class="card tabs">
+        <div class="tab-bar">
+          <button id="tab-login" class="tab active" aria-controls="pane-login">Login</button>
+          <button id="tab-register" class="tab" aria-controls="pane-register">Register</button>
+        </div>
+
+        <div id="pane-login" class="tab-pane active" role="tabpanel" aria-labelledby="tab-login">
           <label for="login-user">Username</label>
           <input id="login-user" class="input" autocomplete="username">
 
@@ -50,11 +53,14 @@
 
           <button id="login-btn" class="btn-primary">Login</button>
           <p id="login-msg" class="msg" role="alert"></p>
+
+          <p class="muted-small">
+            No account yet?
+            <button id="goto-register" class="linklike">Create Account</button>
+          </p>
         </div>
 
-        <!-- Register -->
-        <div class="card">
-          <h3>Register</h3>
+        <div id="pane-register" class="tab-pane" role="tabpanel" aria-labelledby="tab-register">
           <label for="reg-user">Username</label>
           <input id="reg-user" class="input" autocomplete="username">
 
@@ -69,17 +75,30 @@
   </main>
 
   <!-- Book Modal -->
-  <div id="book-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="book-info">
+  <div id="book-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="book-title">
     <div class="modal-content card">
-      <button id="modal-close" class="btn-close" aria-label="Close modal">×</button>
+      <div class="modal-header">
+        <button id="modal-close" class="btn-close" aria-label="Close modal">×</button>
+        <div class="modal-actions">
+          <button id="add-review-btn" class="btn">Add Review</button>
+        </div>
+      </div>
 
-      <!-- Book Info -->
-      <div id="book-info"></div>
+      <div id="book-info" class="book-info"></div>
 
-      <!-- Review Editor (only for logged-in users) -->
+      <!-- Your review editor -->
       <div id="review-editor" class="hidden">
         <h4>Your Review</h4>
-        <textarea id="my-review" rows="4" class="input" placeholder="Write your review here..."></textarea>
+
+        <div class="stars" id="my-stars" aria-label="Your star rating" role="radiogroup">
+          <button class="star" data-v="1" aria-checked="false" role="radio">★</button>
+          <button class="star" data-v="2" aria-checked="false" role="radio">★</button>
+          <button class="star" data-v="3" aria-checked="false" role="radio">★</button>
+          <button class="star" data-v="4" aria-checked="false" role="radio">★</button>
+          <button class="star" data-v="5" aria-checked="false" role="radio">★</button>
+        </div>
+
+        <textarea id="my-review" rows="4" class="input" placeholder="Write your review here"></textarea>
         <div class="row">
           <button id="save-review" class="btn-primary">Save</button>
           <button id="delete-review" class="btn btn-danger">Delete</button>
@@ -87,9 +106,12 @@
         <p id="review-msg" class="msg" role="alert"></p>
       </div>
 
-      <!-- All Reviews -->
+      <!-- Community reviews -->
       <div>
-        <h4>Community Reviews</h4>
+        <div class="reviews-header">
+          <h4>Community Reviews</h4>
+          <div id="avg-rating" class="avg-rating"></div>
+        </div>
         <ul id="reviews-list" class="list"></ul>
       </div>
     </div>
