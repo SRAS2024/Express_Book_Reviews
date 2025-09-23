@@ -1,7 +1,4 @@
-// In-memory book database for the Book Review Shop
-// Shape expected by the course routers:
-// books[isbn] = { title, author, reviews: { [username]: "R| review text" } }
-
+// In-memory books database: books[isbn] = { title, author, reviews: { [username]: "N| text" } }
 const books = {
   "978000000001": {
     title: "The Silent Library",
@@ -23,7 +20,7 @@ const books = {
     title: "Rivers of Starlight",
     author: "Noah Vale",
     reviews: {
-      "kim": "5| Lyrical sci-fi with heart.",
+      "kim": "5| Lyrical sci fi with heart.",
       "leo": "4| Big ideas, great cast.",
       "maya": "5| Stunning world building.",
       "nate": "4| Thoughtful and rich.",
@@ -32,7 +29,7 @@ const books = {
       "quin": "4| Fresh and imaginative.",
       "ria": "5| A beautiful journey.",
       "sara": "4| Very memorable.",
-      "taj": "5| Top tier sci-fi."
+      "taj": "5| Top tier sci fi."
     }
   },
   "978000000003": {
@@ -60,7 +57,7 @@ const books = {
       "greg": "5| Loved the gadgets.",
       "hina": "4| Inventive action.",
       "isa": "3| Light but enjoyable.",
-      "jo": "5| Vibes were immaculate.",
+      "jo": "5| Vibes were great.",
       "kai": "4| Slick adventure.",
       "lia": "5| Terrific set pieces.",
       "mos": "4| Great momentum.",
@@ -168,7 +165,7 @@ const books = {
     author: "Rowan Pitts",
     reviews: {
       "yani": "5| Starry and smart.",
-      "zade": "4| Cool astronomy tie ins.",
+      "zade": "4| Astronomy tie ins.",
       "aver": "5| Big heart.",
       "bari": "4| Inspiring.",
       "cove": "3| A tad long.",
@@ -233,7 +230,7 @@ const books = {
     reviews: {
       "max": "5| Hopeful climate tale.",
       "nina": "4| Grounded and clear.",
-      "oren": "5| Big heart, big scale.",
+      "oren": "5| Big heart and scale.",
       "pia": "4| Energizing.",
       "raul": "3| Some slow bits.",
       "sue": "5| Loved the hope.",
