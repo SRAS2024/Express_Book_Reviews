@@ -66,3 +66,26 @@ h1,h2,h3,h4 { margin:0 0 8px; font-weight:600; }
 .stars { display:inline-flex; gap:4px; margin: 6px 0 10px; }
 .star { background:none; border:none; color:#888; font-size:20px; cursor:pointer; padding:0 2px; }
 .star.active { color:#ffd046; }
+/* Tabs */
+.tabs { padding: 16px; }
+.tab-bar { display: flex; border-bottom: 1px solid rgba(255,255,255,.12); margin-bottom: 12px; }
+.tab { flex: 1; padding: 8px; cursor: pointer; border: none; background: transparent; color: var(--text); }
+.tab.active { border-bottom: 2px solid var(--accent); font-weight: bold; }
+.tab-pane { display: none; }
+.tab-pane.active { display: block; }
+
+/* Linklike buttons */
+.linklike { background: none; border: none; color: var(--accent); cursor: pointer; padding: 0; text-decoration: underline; font-size: 0.9em; }
+.linklike:hover { opacity: 0.8; }
+
+/* Star rating */
+.stars { display: flex; gap: 4px; font-size: 22px; cursor: pointer; margin: 8px 0; }
+.star { background: none; border: none; color: var(--muted); cursor: pointer; }
+.star.active { color: gold; }
+
+/* Messages with status */
+.msg.error { color: var(--danger); }
+.msg.success { color: #22c55e; /* green-500 */ }
+
+/* Avg rating text */
+.avg-rating { font-size: 0.9em; color: var(--muted); margin-top: 4px; }
