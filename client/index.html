@@ -18,7 +18,7 @@
 
       <!-- Username + dropdown (visible when logged IN) -->
       <div id="user-menu" class="dropdown hidden">
-        <button id="user-name" class="btn"></button>
+        <button id="user-name" class="btn" title=""></button>
         <div id="dropdown-content" class="dropdown-content">
           <button id="logout-btn" class="btn btn-danger" style="width:100%">Logout</button>
         </div>
@@ -79,9 +79,7 @@
         <h4>Your review</h4>
         <div class="row" style="gap:12px;">
           <span>Rating:</span>
-          <div id="star-input" class="stars" aria-label="Choose rating">
-            <!-- stars injected by JS -->
-          </div>
+          <div id="star-input" class="stars" aria-label="Choose rating"></div>
         </div>
         <textarea id="my-review" rows="4" class="input" placeholder="Write your review..."></textarea>
         <div class="row">
