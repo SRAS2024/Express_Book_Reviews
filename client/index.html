@@ -12,9 +12,7 @@
     <nav class="nav">
       <button id="nav-home" class="btn">Home</button>
       <button id="nav-catalog" class="btn">Catalog</button>
-      <button id="nav-login" class="btn">Login</button>
-      <button id="nav-register" class="btn">Register</button>
-      <button id="nav-logout" class="btn btn-danger hidden">Logout</button>
+      <button id="nav-account" class="btn">Account</button>
     </nav>
   </header>
 
@@ -33,27 +31,17 @@
       </div>
       <div id="grid" class="grid"></div>
     </section>
-
-    <section id="auth" class="hidden">
-      <div class="grid-2">
-        <div class="card">
-          <h3>Login</h3>
-          <label>Username <input id="login-user" class="input"></label>
-          <label>Password <input id="login-pass" type="password" class="input"></label>
-          <button id="login-btn" class="btn-primary">Login</button>
-          <p id="login-msg" class="msg"></p>
-        </div>
-        <div class="card">
-          <h3>Register</h3>
-          <label>Username <input id="reg-user" class="input"></label>
-          <label>Password <input id="reg-pass" type="password" class="input"></label>
-          <button id="register-btn" class="btn">Register</button>
-          <p id="register-msg" class="msg"></p>
-        </div>
-      </div>
-    </section>
   </main>
 
+  <!-- Account modal -->
+  <div id="account-modal" class="modal hidden">
+    <div class="modal-content card">
+      <button id="account-close" class="btn-close">×</button>
+      <div id="account-content"></div>
+    </div>
+  </div>
+
+  <!-- Book modal -->
   <div id="book-modal" class="modal hidden">
     <div class="modal-content card">
       <button id="modal-close" class="btn-close">×</button>
