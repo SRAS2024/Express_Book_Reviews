@@ -12,11 +12,10 @@ const genl_routes = require("./router/general").general;
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Core middleware
+// Middleware
 app.use(express.json());
-
-// Session middleware globally
 app.use(
+  "/customer",
   session({
     secret: "fingerprint_customer",
     resave: true,
@@ -24,7 +23,7 @@ app.use(
   })
 );
 
-// Serve static client files
+// Serve static frontend files
 app.use(express.static(path.join(__dirname, "client")));
 
 // Protect customer routes that require login
@@ -34,9 +33,9 @@ app.use("/customer/auth/*", verifyJwt);
 app.use("/customer", customer_routes);
 app.use("/", genl_routes);
 
-// Catch-all for unknown routes
-app.use((req, res) => {
-  res.status(404).json({ message: "Route not found" });
+// Default route → serve frontend index.html
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "client", "index.html"));
 });
 
 // Start server
