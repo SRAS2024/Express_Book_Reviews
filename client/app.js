@@ -3,17 +3,19 @@ const tokenKey = "brs_token";
 let currentUsername = null;
 
 function setAuthState({ username, token }) {
-  currentUsername = username || null;
-  if (token) localStorage.setItem(tokenKey, token);
-  const loggedIn = Boolean(token || localStorage.getItem(tokenKey));
+  if (typeof token === "string") localStorage.setItem(tokenKey, token);
+  currentUsername = username || currentUsername || null;
 
-  if (loggedIn) {
-    $("#auth-section").classList.add("hidden");
-    $("#loggedin-section").classList.remove("hidden");
-    $("#welcome-msg").textContent = `Welcome, ${username || currentUsername}`;
+  const loggedIn = Boolean(localStorage.getItem(tokenKey));
+  if (loggedIn && currentUsername) {
+    $("#signed-out").classList.add("hidden");
+    $("#signed-in").classList.remove("hidden");
+    $("#welcome-msg").textContent = `Signed in as ${currentUsername}`;
+    $("#account-label").textContent = currentUsername;
   } else {
-    $("#auth-section").classList.remove("hidden");
-    $("#loggedin-section").classList.add("hidden");
+    $("#signed-out").classList.remove("hidden");
+    $("#signed-in").classList.add("hidden");
+    $("#account-label").textContent = "Account";
   }
 }
 
@@ -27,7 +29,11 @@ async function fetchJSON(path, opts = {}) {
     ...opts,
     headers: { "Content-Type": "application/json", ...(opts.headers || {}) }
   });
-  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || res.statusText);
+  if (!res.ok) {
+    let msg = res.statusText;
+    try { const j = await res.json(); if (j && j.message) msg = j.message; } catch {}
+    throw new Error(msg);
+  }
   return res.json();
 }
 
@@ -40,16 +46,22 @@ async function loadCatalog(query) {
   const grid = $("#grid");
   grid.innerHTML = "";
   let books = [];
-  if (!query) {
-    const data = await fetchJSON("/books");
-    books = data.books;
-  } else {
-    const q = query.trim().toLowerCase();
-    const byTitle = await fetchJSON(`/title/${encodeURIComponent(q)}`).catch(() => ({ books: [] }));
-    const byAuthor = await fetchJSON(`/author/${encodeURIComponent(q)}`).catch(() => ({ books: [] }));
-    const merged = new Map();
-    [...byTitle.books, ...byAuthor.books].forEach(b => merged.set(b.isbn, b));
-    books = [...merged.values()];
+  try {
+    if (!query) {
+      const data = await fetchJSON("/books");
+      books = data.books;
+    } else {
+      const q = query.trim().toLowerCase();
+      const byTitle = await fetchJSON(`/title/${encodeURIComponent(q)}`).catch(() => ({ books: [] }));
+      const byAuthor = await fetchJSON(`/author/${encodeURIComponent(q)}`).catch(() => ({ books: [] }));
+      const merged = new Map();
+      [...byTitle.books, ...byAuthor.books].forEach(b => merged.set(b.isbn, b));
+      books = [...merged.values()];
+    }
+  } catch (e) {
+    console.error(e);
+    grid.innerHTML = `<div class="card">Failed to load catalog: ${e.message}</div>`;
+    return;
   }
 
   for (const b of books) {
@@ -67,35 +79,43 @@ async function loadCatalog(query) {
 }
 
 async function openBook(isbn) {
-  const book = await fetchJSON(`/isbn/${isbn}`);
-  const reviews = await fetchJSON(`/review/${isbn}`).catch(() => ({ reviews: {} }));
+  let book, reviews;
+  try {
+    book = await fetchJSON(`/isbn/${isbn}`);
+    reviews = await fetchJSON(`/review/${isbn}`).catch(() => ({ reviews: {} }));
+  } catch (e) {
+    alert(`Failed to load book: ${e.message}`);
+    return;
+  }
 
   $("#book-info").innerHTML = `
-    <h3>${book.title}</h3>
+    <h3 id="book-title">${book.title}</h3>
     <p>Author: ${book.author}</p>
     <p>ISBN: ${book.isbn}</p>
   `;
-
   renderReviews(reviews.reviews || {});
 
+  // Add Review flow
+  $("#review-editor").classList.add("hidden");
   $("#add-review-btn").onclick = () => {
     const hasToken = Boolean(localStorage.getItem(tokenKey));
     if (!hasToken) {
+      // open account modal on login prompt
       $("#login-msg").textContent = "Please log in to add a review.";
-      $("#account-dropdown").classList.remove("hidden");
+      openAccountModal();
       return;
     }
     $("#review-editor").classList.remove("hidden");
+    $("#my-review").focus();
   };
 
   $("#submit-review").onclick = async () => {
     const text = $("#my-review").value.trim();
-    const stars = $("#star-rating").value;
+    const stars = parseInt($("#star-rating").value, 10);
     if (!text) {
       $("#review-msg").textContent = "Review cannot be empty.";
       return;
     }
-
     try {
       const out = await fetchJSON(`/customer/auth/review/${isbn}`, {
         method: "PUT",
@@ -114,9 +134,11 @@ async function openBook(isbn) {
   $("#cancel-review").onclick = () => {
     $("#review-editor").classList.add("hidden");
     $("#my-review").value = "";
+    $("#review-msg").textContent = "";
   };
 
-  $("#book-modal").classList.remove("hidden");
+  // Open modal
+  openBookModal();
 }
 
 function renderReviews(reviews) {
@@ -148,22 +170,46 @@ function renderReviews(reviews) {
   }
 }
 
-function closeModal() {
-  $("#book-modal").classList.add("hidden");
+/* Modal helpers */
+function openBookModal() {
+  const m = $("#book-modal");
+  m.classList.remove("hidden");
+  m.setAttribute("aria-hidden", "false");
+}
+function closeBookModal() {
+  const m = $("#book-modal");
+  m.classList.add("hidden");
+  m.setAttribute("aria-hidden", "true");
   $("#review-msg").textContent = "";
   $("#my-review").value = "";
 }
 
-// Event bindings
-$("#modal-close").addEventListener("click", closeModal);
+function openAccountModal() {
+  const m = $("#account-modal");
+  m.classList.remove("hidden");
+  m.setAttribute("aria-hidden", "false");
+}
+function closeAccountModal() {
+  const m = $("#account-modal");
+  m.classList.add("hidden");
+  m.setAttribute("aria-hidden", "true");
+  $("#login-msg").textContent = "";
+  $("#register-msg").textContent = "";
+}
+
+/* Event bindings */
+$("#modal-close").addEventListener("click", closeBookModal);
+$("#account-close").addEventListener("click", closeAccountModal);
+
 $("#get-started").addEventListener("click", () => { show("catalog"); loadCatalog(); });
 $("#nav-home").addEventListener("click", () => show("hero"));
 $("#nav-catalog").addEventListener("click", () => { show("catalog"); loadCatalog(); });
+$("#nav-account").addEventListener("click", openAccountModal);
 
 $("#search-btn").addEventListener("click", () => loadCatalog($("#search-input").value));
 $("#clear-search").addEventListener("click", () => { $("#search-input").value = ""; loadCatalog(); });
 
-// Auth
+/* Auth actions */
 $("#login-btn").addEventListener("click", async () => {
   const username = $("#login-user").value.trim();
   const password = $("#login-pass").value;
@@ -175,6 +221,7 @@ $("#login-btn").addEventListener("click", async () => {
     });
     setAuthState({ username: out.username, token: out.accessToken });
     $("#login-msg").textContent = "Login successful";
+    // keep modal open to show state change
   } catch (e) {
     $("#login-msg").textContent = e.message;
   }
@@ -195,17 +242,16 @@ $("#register-btn").addEventListener("click", async () => {
   }
 });
 
-$("#nav-logout").addEventListener("click", () => {
+$("#logout-btn").addEventListener("click", () => {
   localStorage.removeItem(tokenKey);
+  currentUsername = null;
   setAuthState({ username: null });
-  closeModal();
+  closeBookModal();
+  closeAccountModal();
   show("hero");
 });
 
-// Account dropdown toggle
-$("#nav-account").addEventListener("click", () => {
-  $("#account-dropdown").classList.toggle("hidden");
-});
-
-// Initial state
+/* Init */
 setAuthState({ username: null });
+show("hero");
+loadCatalog();
