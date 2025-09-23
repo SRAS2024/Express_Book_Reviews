@@ -1,243 +1,182 @@
-// In-memory books database: books[isbn] = { title, author, reviews: { [username]: "N| text" } }
-const books = {
-  "978000000001": {
-    title: "The Silent Library",
-    author: "Amelia Cross",
+let books = {
+  "9780143127741": {
+    title: "Educated",
+    author: "Tara Westover",
+    isbn: "9780143127741",
     reviews: {
-      "alice": "5| Haunting and beautiful.",
-      "bob": "4| Great pacing and atmosphere.",
-      "carlos": "5| Could not put it down.",
-      "dina": "4| Strong mystery with heart.",
-      "eli": "3| Good, but slow middle.",
-      "fay": "5| Loved the characters.",
-      "glen": "4| Smart twists.",
-      "hana": "5| Ending was perfect.",
-      "ivan": "4| Very satisfying read.",
-      "jules": "5| A favorite this year."
+      user1: "★★★★★ Life-changing memoir, deeply inspiring.",
+      user2: "★★★★☆ Raw and emotional.",
+      user3: "★★★★★ Could not put it down.",
+      user4: "★★★★☆ Powerful but heavy at times.",
+      user5: "★★★★★ Everyone should read this."
     }
   },
-  "978000000002": {
-    title: "Rivers of Starlight",
-    author: "Noah Vale",
+  "9780143127796": {
+    title: "Braiding Sweetgrass",
+    author: "Robin Wall Kimmerer",
+    isbn: "9780143127796",
     reviews: {
-      "kim": "5| Lyrical sci fi with heart.",
-      "leo": "4| Big ideas, great cast.",
-      "maya": "5| Stunning world building.",
-      "nate": "4| Thoughtful and rich.",
-      "opal": "3| Dense but rewarding.",
-      "pax": "5| Loved every chapter.",
-      "quin": "4| Fresh and imaginative.",
-      "ria": "5| A beautiful journey.",
-      "sara": "4| Very memorable.",
-      "taj": "5| Top tier sci fi."
+      user1: "★★★★★ Beautiful and spiritual.",
+      user2: "★★★★★ Changed my view of nature.",
+      user3: "★★★★☆ A little dense in places.",
+      user4: "★★★★★ Deeply poetic.",
+      user5: "★★★★★ A gift to the world."
     }
   },
-  "978000000003": {
-    title: "Clockmaker’s Daughter",
-    author: "Ivy Hart",
+  "9780743273565": {
+    title: "Infidel",
+    author: "Ayaan Hirsi Ali",
+    isbn: "9780743273565",
     reviews: {
-      "uma": "5| Gorgeous prose.",
-      "vic": "4| Clever structure.",
-      "wren": "5| Mystery done right.",
-      "xan": "4| Vivid setting.",
-      "yara": "3| Slow start, strong end.",
-      "zane": "5| Could not stop reading.",
-      "amy": "4| Great surprises.",
-      "ben": "5| Emotional and sharp.",
-      "cara": "4| Elegant writing.",
-      "drew": "5| Masterful."
+      user1: "★★★★★ Brave and compelling.",
+      user2: "★★★★☆ Harsh truths, important read.",
+      user3: "★★★★★ Incredible life story.",
+      user4: "★★★★☆ Eye-opening.",
+      user5: "★★★★★ Powerful testimony."
     }
   },
-  "978000000004": {
-    title: "City of Brass Gears",
-    author: "Kieran Pike",
+  "9780804137386": {
+    title: "Essentialism",
+    author: "Greg McKeown",
+    isbn: "9780804137386",
     reviews: {
-      "erin": "5| Fun steampunk ride.",
-      "fern": "4| Energetic and cool.",
-      "greg": "5| Loved the gadgets.",
-      "hina": "4| Inventive action.",
-      "isa": "3| Light but enjoyable.",
-      "jo": "5| Vibes were great.",
-      "kai": "4| Slick adventure.",
-      "lia": "5| Terrific set pieces.",
-      "mos": "4| Great momentum.",
-      "nez": "5| I want a sequel."
+      user1: "★★★★★ Life-changing productivity book.",
+      user2: "★★★★☆ Very practical.",
+      user3: "★★★★★ Helps simplify life.",
+      user4: "★★★★☆ Repetitive at times.",
+      user5: "★★★★★ Must-read for focus."
     }
   },
-  "978000000005": {
-    title: "The Orchard Keepers",
-    author: "Rhea Sloan",
+  "9780735211292": {
+    title: "Atomic Habits",
+    author: "James Clear",
+    isbn: "9780735211292",
     reviews: {
-      "oma": "5| Tender and true.",
-      "pam": "4| Subtle and warm.",
-      "raj": "5| Wonderful family story.",
-      "sam": "4| Poignant themes.",
-      "tia": "3| Quiet but moving.",
-      "umi": "5| Memorable characters.",
-      "vee": "4| Lovely writing.",
-      "wes": "5| Heartfelt favorite.",
-      "xue": "4| Gentle and kind.",
-      "yan": "5| Beautiful ending."
+      user1: "★★★★★ The best book on habits.",
+      user2: "★★★★★ Practical and easy to apply.",
+      user3: "★★★★☆ Some parts obvious, but useful.",
+      user4: "★★★★★ Transformative.",
+      user5: "★★★★★ Essential self-improvement guide."
     }
   },
-  "978000000006": {
-    title: "Neon Harbor Nights",
-    author: "Cass Morgan",
+  "9780307455772": {
+    title: "The Righteous Mind",
+    author: "Jonathan Haidt",
+    isbn: "9780307455772",
     reviews: {
-      "ziv": "5| Stylish noir.",
-      "aria": "4| Sharp dialogue.",
-      "bryn": "5| Electric mood.",
-      "cian": "4| Tight plotting.",
-      "dax": "3| A bit gritty.",
-      "elle": "5| Loved the voice.",
-      "finn": "4| Cool setting.",
-      "gia": "5| Pulled me in fast.",
-      "hal": "4| Great finale.",
-      "ian": "5| A standout."
+      user1: "★★★★★ Fascinating insights.",
+      user2: "★★★★☆ Dense but rewarding.",
+      user3: "★★★★★ Changed how I see politics.",
+      user4: "★★★★☆ Eye-opening psychology.",
+      user5: "★★★★★ Brilliant work."
     }
   },
-  "978000000007": {
-    title: "A Map for Tomorrow",
-    author: "Theo Park",
+  "9781458727348": {
+    title: "The Untethered Soul",
+    author: "Michael A. Singer",
+    isbn: "9781458727348",
     reviews: {
-      "joan": "5| Uplifting and wise.",
-      "keir": "4| Thoughtful arc.",
-      "luke": "5| Lovely message.",
-      "mari": "4| Real and honest.",
-      "noor": "3| A little neat.",
-      "oria": "5| Joyful read.",
-      "peia": "4| Very humane.",
-      "rani": "5| I teared up.",
-      "sven": "4| Quietly powerful.",
-      "tess": "5| Stays with you."
+      user1: "★★★★★ Spiritually awakening.",
+      user2: "★★★★☆ A bit abstract at times.",
+      user3: "★★★★★ Deep and meaningful.",
+      user4: "★★★★☆ Requires reflection.",
+      user5: "★★★★★ Beautifully written."
     }
   },
-  "978000000008": {
-    title: "The Glass Voyager",
-    author: "Silas Kade",
+  "9780807047415": {
+    title: "White Fragility",
+    author: "Robin DiAngelo",
+    isbn: "9780807047415",
     reviews: {
-      "ugo": "5| Epic sense of wonder.",
-      "vale": "4| Smart ideas.",
-      "walt": "5| Loved the scale.",
-      "xavi": "4| Fascinating tech.",
-      "yuri": "3| Slow in parts.",
-      "zora": "5| Awe inspiring.",
-      "alec": "4| Cool concepts.",
-      "bela": "5| Expansive and bold.",
-      "cora": "4| Big imagination.",
-      "dion": "5| A favorite."
+      user1: "★★★★★ Challenging but important.",
+      user2: "★★★★☆ Eye-opening.",
+      user3: "★★★★★ Necessary perspective.",
+      user4: "★★★★☆ Tough but worth it.",
+      user5: "★★★★★ Powerful message."
     }
   },
-  "978000000009": {
-    title: "Paper Moons",
-    author: "June Harlow",
+  "9780385265560": {
+    title: "There Are No Children Here",
+    author: "Alex Kotlowitz",
+    isbn: "9780385265560",
     reviews: {
-      "eden": "5| Poetic and tender.",
-      "faye": "4| Gentle romance.",
-      "gita": "5| Heart on sleeve.",
-      "hana": "4| Sweet and real.",
-      "irys": "3| Predictable but nice.",
-      "juno": "5| Comfort read.",
-      "kato": "4| Lovely mood.",
-      "lina": "5| Beautiful tone.",
-      "mona": "4| Soft and cozy.",
-      "niko": "5| Pure delight."
+      user1: "★★★★★ Heartbreaking but vital.",
+      user2: "★★★★★ Brilliant reporting.",
+      user3: "★★★★☆ Sad but true.",
+      user4: "★★★★★ Touching and raw.",
+      user5: "★★★★★ A must-read."
     }
   },
-  "978000000010": {
-    title: "Black Coral Reef",
-    author: "Arden Cho",
+  "9780140449334": {
+    title: "Meditations",
+    author: "Marcus Aurelius",
+    isbn: "9780140449334",
     reviews: {
-      "olaf": "5| Tense eco thriller.",
-      "puri": "4| Strong stakes.",
-      "quin": "5| Cinematic scenes.",
-      "rhea": "4| Sharp pacing.",
-      "sami": "3| Some tropes.",
-      "tali": "5| Loved the turns.",
-      "urs": "4| Good tension.",
-      "vale": "5| Fast and fun.",
-      "wren": "4| Great momentum.",
-      "xio": "5| Gripping."
+      user1: "★★★★★ Timeless wisdom.",
+      user2: "★★★★★ Stoic masterpiece.",
+      user3: "★★★★☆ Can feel repetitive.",
+      user4: "★★★★★ Grounding and wise.",
+      user5: "★★★★★ Life-changing philosophy."
     }
   },
-  "978000000011": {
-    title: "Hidden Constellations",
-    author: "Rowan Pitts",
+  "9780061122415": {
+    title: "The Alchemist",
+    author: "Paulo Coelho",
+    isbn: "9780061122415",
     reviews: {
-      "yani": "5| Starry and smart.",
-      "zade": "4| Astronomy tie ins.",
-      "aver": "5| Big heart.",
-      "bari": "4| Inspiring.",
-      "cove": "3| A tad long.",
-      "dane": "5| Magical feel.",
-      "esme": "4| Calm and bright.",
-      "faye2": "5| Hug in a book.",
-      "gale": "4| Strong finish.",
-      "hadi": "5| Loved it."
+      user1: "★★★★★ Magical story.",
+      user2: "★★★★☆ Simple but inspiring.",
+      user3: "★★★★★ Changed my perspective.",
+      user4: "★★★★☆ Overhyped but good.",
+      user5: "★★★★★ Spiritual journey."
     }
   },
-  "978000000012": {
-    title: "Winter’s Cartographer",
-    author: "Piper Leigh",
+  "9780671027032": {
+    title: "Tuesdays with Morrie",
+    author: "Mitch Albom",
+    isbn: "9780671027032",
     reviews: {
-      "ilan": "5| Atmosphere for days.",
-      "joel": "4| Evocative journey.",
-      "kira": "5| Stunning landscapes.",
-      "lars": "4| Quiet power.",
-      "mika": "3| Slow burn.",
-      "nuri": "5| Beautiful craft.",
-      "olga": "4| Immersive.",
-      "penn": "5| Transported me.",
-      "quee": "4| Very polished.",
-      "ruth": "5| Excellent."
+      user1: "★★★★★ Emotional and deep.",
+      user2: "★★★★★ Beautiful story.",
+      user3: "★★★★☆ A bit sentimental.",
+      user4: "★★★★★ Makes you reflect.",
+      user5: "★★★★★ Wonderful life lessons."
     }
   },
-  "978000000013": {
-    title: "Signals in the Fog",
-    author: "Dorian West",
+  "9780743297332": {
+    title: "The Road",
+    author: "Cormac McCarthy",
+    isbn: "9780743297332",
     reviews: {
-      "sio": "5| Eerie and clever.",
-      "taz": "4| Cool concept.",
-      "umi2": "5| Perfect mood.",
-      "vero": "4| Smart clues.",
-      "wyn": "3| Needed more clues.",
-      "xan2": "5| Nailed the ending.",
-      "yue": "4| Nice cadence.",
-      "zen": "5| A keeper.",
-      "amber": "4| Satisfying.",
-      "brad": "5| Great puzzle."
+      user1: "★★★★★ Dark and moving.",
+      user2: "★★★★☆ Hauntingly written.",
+      user3: "★★★★★ Incredible prose.",
+      user4: "★★★★☆ Depressing but brilliant.",
+      user5: "★★★★★ Masterpiece."
     }
   },
-  "978000000014": {
-    title: "Embers and Echoes",
-    author: "Leah Mor",
+  "9780316769488": {
+    title: "The Catcher in the Rye",
+    author: "J.D. Salinger",
+    isbn: "9780316769488",
     reviews: {
-      "cara2": "5| Fiery and bold.",
-      "dax2": "4| Strong emotion.",
-      "elle2": "5| Big catharsis.",
-      "fin2": "4| Compelling arc.",
-      "gia2": "3| Heavy at times.",
-      "hal2": "5| Powerful end.",
-      "ian2": "4| Great beats.",
-      "jo2": "5| I felt it.",
-      "kai2": "4| Wonderful drive.",
-      "lia2": "5| Excellent payoff."
+      user1: "★★★★★ Iconic classic.",
+      user2: "★★★★☆ Relatable youth themes.",
+      user3: "★★★★★ Great narrative voice.",
+      user4: "★★★★☆ Overrated by some.",
+      user5: "★★★★★ Timeless coming-of-age story."
     }
   },
-  "978000000015": {
-    title: "The Last Green Planet",
-    author: "Maya Ren",
+  "9780451524935": {
+    title: "1984",
+    author: "George Orwell",
+    isbn: "9780451524935",
     reviews: {
-      "max": "5| Hopeful climate tale.",
-      "nina": "4| Grounded and clear.",
-      "oren": "5| Big heart and scale.",
-      "pia": "4| Energizing.",
-      "raul": "3| Some slow bits.",
-      "sue": "5| Loved the hope.",
-      "tan": "4| Engaging story.",
-      "umi3": "5| Inspiring.",
-      "val": "4| Very relevant.",
-      "walt2": "5| Must read."
+      user1: "★★★★★ Chilling and prophetic.",
+      user2: "★★★★★ Still relevant today.",
+      user3: "★★★★☆ Bleak but important.",
+      user4: "★★★★★ Brilliant dystopia.",
+      user5: "★★★★★ Everyone should read this."
     }
   }
 };
