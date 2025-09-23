@@ -12,10 +12,11 @@ const genl_routes = require("./router/general").general;
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
+// Core middleware
 app.use(express.json());
+
+// Session middleware globally
 app.use(
-  "/customer",
   session({
     secret: "fingerprint_customer",
     resave: true,
@@ -23,7 +24,7 @@ app.use(
   })
 );
 
-// Static client
+// Serve static client files
 app.use(express.static(path.join(__dirname, "client")));
 
 // Protect customer routes that require login
@@ -33,7 +34,7 @@ app.use("/customer/auth/*", verifyJwt);
 app.use("/customer", customer_routes);
 app.use("/", genl_routes);
 
-// Fallback for unknown routes (optional but useful)
+// Catch-all for unknown routes
 app.use((req, res) => {
   res.status(404).json({ message: "Route not found" });
 });
