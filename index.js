@@ -12,8 +12,10 @@ const genl_routes = require("./router/general").general;
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware
+// JSON body parsing
 app.use(express.json());
+
+// Sessions (only on /customer scope)
 app.use(
   "/customer",
   session({
@@ -23,34 +25,27 @@ app.use(
   })
 );
 
-// ✅ Serve static frontend only from /client
-const clientPath = path.join(__dirname, "client");
-app.use(express.static(clientPath));
+// Serve static frontend
+app.use(express.static(path.join(__dirname, "client")));
 
-// ✅ API routes (backend)
+// Guard all “/customer/auth/*” routes with JWT
 app.use("/customer/auth/*", verifyJwt);
+
+// API routers
 app.use("/customer", customer_routes);
 app.use("/", genl_routes);
 
-// ✅ Serve frontend index.html for non-API routes
-app.get("/", (req, res) => {
-  res.sendFile(path.join(clientPath, "index.html"));
+// Frontend routes -> index.html
+app.get("/", (_req, res) => {
+  res.sendFile(path.join(__dirname, "client", "index.html"));
+});
+app.get("*", (_req, res) => {
+  res.sendFile(path.join(__dirname, "client", "index.html"));
 });
 
-// Catch-all: only for frontend routes, not backend
-app.get(/^\/(?!customer|api).*/, (req, res) => {
-  res.sendFile(path.join(clientPath, "index.html"));
-});
+// 404 for any other API miss (after SPA fallback this rarely runs)
+app.use((req, res) => res.status(404).json({ message: "Route not found" }));
 
-// Fallback for unknown API
-app.use((req, res, next) => {
-  if (req.originalUrl.startsWith("/customer") || req.originalUrl.startsWith("/api")) {
-    return res.status(404).json({ message: "Route not found" });
-  }
-  next();
-});
-
-// Start server
-app.listen(PORT, () => {
-  console.log(`✅ Server is running at http://localhost:${PORT}`);
-});
+app.listen(PORT, () =>
+  console.log(`✅ Server running on port ${PORT}`)
+);
