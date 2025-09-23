@@ -12,9 +12,10 @@
     <nav class="nav">
       <button id="nav-home" class="btn">Home</button>
       <button id="nav-catalog" class="btn">Catalog</button>
-      <div class="account-container">
-        <button id="nav-account" class="btn"><span id="account-label">Account</span></button>
-        <div id="account-dropdown" class="dropdown hidden">
+      <button id="nav-account" class="btn">Account</button>
+      <div id="user-menu" class="dropdown hidden">
+        <button id="user-name" class="btn"></button>
+        <div class="dropdown-content">
           <button id="logout-btn" class="btn btn-danger">Logout</button>
         </div>
       </div>
@@ -22,14 +23,12 @@
   </header>
 
   <main id="main">
-    <!-- Home -->
     <section id="hero" class="card">
       <h2>Welcome</h2>
       <p>Browse books, read reviews, and share your thoughts after you login.</p>
       <button id="get-started" class="btn-primary">Get started</button>
     </section>
 
-    <!-- Catalog -->
     <section id="catalog" class="hidden">
       <div class="toolbar card">
         <input id="search-input" class="input" placeholder="Search by title or author">
@@ -39,56 +38,54 @@
       <div id="grid" class="grid"></div>
     </section>
 
-    <!-- Account Page -->
-    <section id="account" class="hidden">
-      <div id="signed-out" class="grid-2">
-        <div class="card" id="login-card">
-          <h3>Login</h3>
-          <label>Username <input id="login-user" class="input" autocomplete="username"></label>
-          <label>Password <input id="login-pass" type="password" class="input" autocomplete="current-password"></label>
-          <button id="login-btn" class="btn-primary">Login</button>
-          <p id="login-msg" class="msg"></p>
-          <p><a href="#" id="link-create-account">Create Account</a></p>
-        </div>
-        <div class="card hidden" id="register-card">
-          <h3>Register</h3>
-          <label>Username <input id="reg-user" class="input" autocomplete="username"></label>
-          <label>Password <input id="reg-pass" type="password" class="input" autocomplete="new-password"></label>
-          <button id="register-btn" class="btn">Register</button>
-          <p id="register-msg" class="msg"></p>
-        </div>
+    <section id="login" class="hidden">
+      <div class="card auth-card">
+        <h3>Login</h3>
+        <label>Username <input id="login-user" class="input"></label>
+        <label>Password <input id="login-pass" type="password" class="input"></label>
+        <button id="login-btn" class="btn-primary">Login</button>
+        <p id="login-msg" class="msg"></p>
+        <p><a id="link-register" class="link">Create Account</a></p>
+      </div>
+    </section>
+
+    <section id="register" class="hidden">
+      <div class="card auth-card">
+        <h3>Create Account</h3>
+        <label>Username <input id="reg-user" class="input"></label>
+        <label>Password <input id="reg-pass" type="password" class="input"></label>
+        <button id="register-btn" class="btn">Register</button>
+        <p id="register-msg" class="msg"></p>
       </div>
     </section>
   </main>
 
-  <!-- Book modal -->
   <div id="book-modal" class="modal hidden">
     <div class="modal-content card">
       <button id="modal-close" class="btn-close">×</button>
       <div id="book-info"></div>
-
-      <button id="add-review-btn" class="btn-primary">Add Review</button>
-
       <div id="review-editor" class="hidden">
-        <h4>Your Review</h4>
-        <label for="star-rating">Rating:</label>
-        <select id="star-rating" class="input">
-          <option value="1">★☆☆☆☆ (1)</option>
-          <option value="2">★★☆☆☆ (2)</option>
-          <option value="3">★★★☆☆ (3)</option>
-          <option value="4">★★★★☆ (4)</option>
-          <option value="5">★★★★★ (5)</option>
-        </select>
-        <textarea id="my-review" rows="4" class="input" placeholder="Write your review"></textarea>
+        <h4>Your review</h4>
         <div class="row">
-          <button id="submit-review" class="btn-primary">Submit</button>
-          <button id="cancel-review" class="btn">Cancel</button>
+          <label>Rating:
+            <select id="review-stars" class="input">
+              <option value="1">★☆☆☆☆</option>
+              <option value="2">★★☆☆☆</option>
+              <option value="3">★★★☆☆</option>
+              <option value="4">★★★★☆</option>
+              <option value="5">★★★★★</option>
+            </select>
+          </label>
+        </div>
+        <textarea id="my-review" rows="4" class="input"></textarea>
+        <div class="row">
+          <button id="save-review" class="btn-primary">Submit</button>
+          <button id="delete-review" class="btn btn-danger">Delete</button>
         </div>
         <p id="review-msg" class="msg"></p>
       </div>
-
       <div>
-        <h4>All Reviews</h4>
+        <h4>All reviews</h4>
         <ul id="reviews-list" class="list"></ul>
         <button id="more-reviews" class="btn-secondary hidden">More Reviews</button>
       </div>
