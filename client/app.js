@@ -1,278 +1,183 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const main = document.getElementById("main");
-  const nav = document.querySelector(".nav");
+const $ = sel => document.querySelector(sel);
+const tokenKey = "brs_token";
+let currentUsername = null;
 
-  // Session helpers
-  function getToken() {
-    return localStorage.getItem("token");
-  }
-  function getUsername() {
-    return localStorage.getItem("username");
-  }
-  function setSession(username, token) {
-    localStorage.setItem("username", username);
-    localStorage.setItem("token", token);
-  }
-  function clearSession() {
-    localStorage.removeItem("username");
-    localStorage.removeItem("token");
-  }
+function setAuthState({ username, token }) {
+  currentUsername = username || null;
+  if (token) localStorage.setItem(tokenKey, token);
+  const loggedIn = Boolean(token || localStorage.getItem(tokenKey));
+  $("#nav-account").classList.toggle("hidden", loggedIn);
+  $("#user-dropdown").classList.toggle("hidden", !loggedIn);
+  if (loggedIn) $("#user-name").textContent = currentUsername;
+}
 
-  // Render nav
-  function renderNav() {
-    nav.innerHTML = `
-      <button class="btn" data-page="home">Home</button>
-      <button class="btn" data-page="catalog">Catalog</button>
-      ${
-        getToken()
-          ? `<div class="dropdown">
-              <button class="btn">${getUsername()}</button>
-              <div class="dropdown-content">
-                <button id="logout" class="btn btn-danger">Logout</button>
-              </div>
-             </div>`
-          : `<button class="btn" data-page="account">Account</button>`
-      }
+function authHeader() {
+  const t = localStorage.getItem(tokenKey);
+  return t ? { Authorization: `Bearer ${t}` } : {};
+}
+
+async function fetchJSON(path, opts = {}) {
+  const res = await fetch(path, {
+    ...opts,
+    headers: { "Content-Type": "application/json", ...(opts.headers || {}) }
+  });
+  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || res.statusText);
+  return res.json();
+}
+
+function show(sectionId) {
+  ["hero", "catalog", "auth"].forEach(id => $(`#${id}`).classList.add("hidden"));
+  $(`#${sectionId}`).classList.remove("hidden");
+}
+
+async function loadCatalog(query) {
+  const grid = $("#grid");
+  grid.innerHTML = "";
+  let books = [];
+  if (!query) {
+    const data = await fetchJSON("/books");
+    books = data.books;
+  } else {
+    const q = query.trim().toLowerCase();
+    const byTitle = await fetchJSON(`/title/${encodeURIComponent(q)}`).catch(() => ({ books: [] }));
+    const byAuthor = await fetchJSON(`/author/${encodeURIComponent(q)}`).catch(() => ({ books: [] }));
+    const merged = new Map();
+    [...byTitle.books, ...byAuthor.books].forEach(b => merged.set(b.isbn, b));
+    books = [...merged.values()];
+  }
+  for (const b of books) {
+    const card = document.createElement("div");
+    card.className = "tile";
+    card.innerHTML = `
+      <h4>${b.title}</h4>
+      <p>${b.author}</p>
+      <p class="muted">ISBN: ${b.isbn}</p>
+      <button class="btn" data-isbn="${b.isbn}">View</button>
     `;
+    card.querySelector("button").addEventListener("click", () => openBook(b.isbn));
+    grid.appendChild(card);
+  }
+}
 
-    const logoutBtn = document.getElementById("logout");
-    if (logoutBtn) {
-      logoutBtn.addEventListener("click", () => {
-        clearSession();
-        renderNav();
-        renderHome();
-      });
+async function openBook(isbn) {
+  const book = await fetchJSON(`/isbn/${isbn}`);
+  const reviews = await fetchJSON(`/review/${isbn}`).catch(() => ({ reviews: {} }));
+  $("#book-info").innerHTML = `
+    <h3>${book.title}</h3>
+    <p>Author: ${book.author}</p>
+    <p>ISBN: ${book.isbn}</p>
+  `;
+  const list = $("#reviews-list");
+  list.innerHTML = "";
+  Object.entries(reviews.reviews || {}).forEach(([user, r]) => {
+    const li = document.createElement("li");
+    const stars = "★".repeat(r.rating || 0);
+    li.textContent = `${user}: ${r.text} ${stars}`;
+    list.appendChild(li);
+  });
+
+  // Show editor if logged in
+  const hasToken = Boolean(localStorage.getItem(tokenKey));
+  $("#review-editor").classList.toggle("hidden", !hasToken);
+
+  $("#save-review").onclick = async () => {
+    const text = $("#my-review").value.trim();
+    const rating = parseInt($("#review-rating").value, 10);
+    if (!text || !rating) {
+      $("#review-msg").textContent = "Please provide review text and rating.";
+      return;
     }
-
-    nav.querySelectorAll("[data-page]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const page = btn.getAttribute("data-page");
-        if (page === "home") renderHome();
-        if (page === "catalog") loadCatalog();
-        if (page === "account") renderLogin();
-      });
-    });
-  }
-
-  // Home
-  function renderHome() {
-    main.innerHTML = `
-      <div class="card">
-        <h2>Welcome</h2>
-        <p>Browse books, read reviews, and share your thoughts after you login.</p>
-        <button id="get-started" class="btn btn-primary">Get started</button>
-      </div>
-    `;
-    document
-      .getElementById("get-started")
-      .addEventListener("click", () => loadCatalog());
-  }
-
-  // Catalog
-  async function loadCatalog() {
-    main.innerHTML = `<div class="card"><h2>Catalog</h2><div id="catalog" class="grid"></div></div>`;
-    const container = document.getElementById("catalog");
-
     try {
-      const res = await fetch("/books");
-      const books = await res.json();
-
-      books.forEach((book) => {
-        const div = document.createElement("div");
-        div.className = "tile";
-        div.innerHTML = `
-          <h4>${book.title}</h4>
-          <p>${book.author}</p>
-          <button class="btn btn-secondary">View</button>
-        `;
-        div.querySelector("button").addEventListener("click", () => {
-          openBookModal(book);
-        });
-        container.appendChild(div);
+      const out = await fetchJSON(`/customer/auth/review/${isbn}`, {
+        method: "PUT",
+        headers: authHeader(),
+        body: JSON.stringify({ review: { text, rating } })
       });
-    } catch (err) {
-      console.error("Error loading catalog:", err);
+      $("#review-msg").textContent = out.message;
+      openBook(isbn);
+    } catch (e) {
+      $("#review-msg").textContent = e.message;
     }
-  }
+  };
 
-  // Login
-  function renderLogin() {
-    main.innerHTML = `
-      <div class="card auth-card">
-        <h2>Login</h2>
-        <input id="login-username" class="input" placeholder="Username">
-        <input id="login-password" class="input" type="password" placeholder="Password">
-        <button id="login-btn" class="btn btn-primary">Login</button>
-        <p>No account? <span id="to-register" class="link">Create Account</span></p>
-      </div>
-    `;
-
-    document.getElementById("login-btn").addEventListener("click", async () => {
-      const username = document.getElementById("login-username").value.trim();
-      const password = document.getElementById("login-password").value.trim();
-      try {
-        const res = await fetch("/customer/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username, password }),
-        });
-        const data = await res.json();
-        if (res.ok) {
-          setSession(data.username, data.accessToken);
-          renderNav();
-          loadCatalog();
-        } else {
-          alert(data.message || "Login failed");
-        }
-      } catch {
-        alert("Network error");
-      }
-    });
-
-    document.getElementById("to-register").addEventListener("click", () => {
-      renderRegister();
-    });
-  }
-
-  // Register
-  function renderRegister() {
-    main.innerHTML = `
-      <div class="card auth-card">
-        <h2>Create Account</h2>
-        <input id="reg-username" class="input" placeholder="Username">
-        <input id="reg-password" class="input" type="password" placeholder="Password">
-        <button id="register-btn" class="btn btn-primary">Register</button>
-        <p><span id="back-login" class="link">Back to Login</span></p>
-      </div>
-    `;
-
-    document
-      .getElementById("register-btn")
-      .addEventListener("click", async () => {
-        const username = document.getElementById("reg-username").value.trim();
-        const password = document.getElementById("reg-password").value.trim();
-        try {
-          const res = await fetch("/customer/register", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ username, password }),
-          });
-          const data = await res.json();
-          if (res.ok) {
-            setSession(username, data.accessToken || "");
-            renderNav();
-            loadCatalog();
-          } else {
-            alert(data.message || "Registration failed");
-          }
-        } catch {
-          alert("Network error");
-        }
+  $("#delete-review").onclick = async () => {
+    try {
+      const out = await fetchJSON(`/customer/auth/review/${isbn}`, {
+        method: "DELETE",
+        headers: authHeader()
       });
-
-    document.getElementById("back-login").addEventListener("click", () => {
-      renderLogin();
-    });
-  }
-
-  // Book modal with review
-  function openBookModal(book) {
-    const modal = document.createElement("div");
-    modal.className = "modal";
-    modal.innerHTML = `
-      <div class="modal-content card">
-        <button class="btn-close">&times;</button>
-        <h2>${book.title}</h2>
-        <p><strong>Author:</strong> ${book.author}</p>
-        <p><strong>ISBN:</strong> ${book.isbn}</p>
-        ${
-          getToken()
-            ? `
-          <h3>Your review</h3>
-          <select id="review-rating">
-            <option value="">Rating</option>
-            <option value="1">★</option>
-            <option value="2">★★</option>
-            <option value="3">★★★</option>
-            <option value="4">★★★★</option>
-            <option value="5">★★★★★</option>
-          </select>
-          <textarea id="review-text" placeholder="Write your review..."></textarea>
-          <div class="toolbar">
-            <button id="save-review" class="btn btn-primary">Save</button>
-            <button id="delete-review" class="btn btn-danger">Delete</button>
-          </div>
-        `
-            : `<p>Please login to add a review.</p>`
-        }
-        <h3>All reviews</h3>
-        <ul class="list" id="reviews-list"></ul>
-      </div>
-    `;
-    document.body.appendChild(modal);
-
-    modal.querySelector(".btn-close").addEventListener("click", () => modal.remove());
-
-    if (getToken()) {
-      modal.querySelector("#save-review").addEventListener("click", async () => {
-        const rating = modal.querySelector("#review-rating").value;
-        const text = modal.querySelector("#review-text").value.trim();
-        if (!rating || !text) {
-          alert("Please provide both a rating and review text.");
-          return;
-        }
-        try {
-          const res = await fetch(`/customer/auth/review/${book.isbn}`, {
-            method: "PUT",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${getToken()}`,
-            },
-            body: JSON.stringify({ review: `${text} (${rating} stars)` }),
-          });
-          if (res.ok) {
-            modal.remove();
-            loadCatalog();
-          } else {
-            alert("Error saving review");
-          }
-        } catch {
-          alert("Network error");
-        }
-      });
-
-      modal.querySelector("#delete-review").addEventListener("click", async () => {
-        try {
-          const res = await fetch(`/customer/auth/review/${book.isbn}`, {
-            method: "DELETE",
-            headers: {
-              Authorization: `Bearer ${getToken()}`,
-            },
-          });
-          if (res.ok) {
-            modal.remove();
-            loadCatalog();
-          } else {
-            alert("Error deleting review");
-          }
-        } catch {
-          alert("Network error");
-        }
-      });
+      $("#review-msg").textContent = out.message;
+      openBook(isbn);
+    } catch (e) {
+      $("#review-msg").textContent = e.message;
     }
+  };
 
-    // Load reviews
-    const reviewsList = modal.querySelector("#reviews-list");
-    if (book.reviews) {
-      Object.entries(book.reviews).forEach(([user, review]) => {
-        const li = document.createElement("li");
-        li.textContent = `${user}: ${review}`;
-        reviewsList.appendChild(li);
-      });
-    }
+  $("#book-modal").classList.remove("hidden");
+}
+
+function closeModal() {
+  $("#book-modal").classList.add("hidden");
+  $("#review-msg").textContent = "";
+  $("#my-review").value = "";
+  $("#review-rating").value = "";
+}
+
+$("#modal-close").addEventListener("click", closeModal);
+$("#get-started").addEventListener("click", () => { show("catalog"); loadCatalog(); });
+$("#nav-home").addEventListener("click", () => show("hero"));
+$("#nav-catalog").addEventListener("click", () => { show("catalog"); loadCatalog(); });
+$("#nav-account").addEventListener("click", () => { show("auth"); });
+
+$("#search-btn").addEventListener("click", () => loadCatalog($("#search-input").value));
+$("#clear-search").addEventListener("click", () => { $("#search-input").value = ""; loadCatalog(); });
+
+$("#login-btn").addEventListener("click", async () => {
+  const username = $("#login-user").value.trim();
+  const password = $("#login-pass").value;
+  $("#login-msg").textContent = "";
+  try {
+    const out = await fetchJSON("/customer/login", {
+      method: "POST",
+      body: JSON.stringify({ username, password })
+    });
+    setAuthState({ username: out.username, token: out.accessToken });
+    $("#login-msg").textContent = "Login successful";
+    show("catalog");
+    loadCatalog();
+  } catch (e) {
+    $("#login-msg").textContent = e.message;
   }
-
-  // Init
-  renderNav();
-  renderHome();
 });
+
+$("#register-btn").addEventListener("click", async () => {
+  const username = $("#reg-user").value.trim();
+  const password = $("#reg-pass").value;
+  $("#register-msg").textContent = "";
+  try {
+    const out = await fetchJSON("/customer/register", {
+      method: "POST",
+      body: JSON.stringify({ username, password })
+    });
+    setAuthState({ username, token: out.accessToken });
+    $("#register-msg").textContent = "Registration successful";
+    show("catalog");
+    loadCatalog();
+  } catch (e) {
+    $("#register-msg").textContent = e.message;
+  }
+});
+
+$("#to-register").addEventListener("click", () => {
+  $("#register-card").classList.remove("hidden");
+});
+
+$("#logout-btn").addEventListener("click", () => {
+  localStorage.removeItem(tokenKey);
+  setAuthState({ username: null });
+  closeModal();
+  show("hero");
+});
+
+// Initial state
+setAuthState({ username: null });
