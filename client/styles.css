@@ -20,7 +20,11 @@ h1, h2, h3, h4 { margin: 0 0 8px; }
 .btn-danger { background: var(--danger); border-color: var(--danger); color: white; }
 .btn:hover { opacity: .9; transform: translateY(-1px); }
 .btn-close { float: right; font-size: 20px; line-height: 1; padding: 4px 8px; background: transparent; border: none; }
-.hidden { display: none; }
+
+/* Forcefully hide things marked hidden */
+.hidden { display: none !important; }
+#book-modal.hidden { display: none !important; }
+.modal[aria-hidden="true"] { display: none !important; }
 
 .card {
   background: #111827;
@@ -39,13 +43,14 @@ h1, h2, h3, h4 { margin: 0 0 8px; }
 .toolbar { display: flex; gap: 8px; align-items: center; }
 .row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
 .list { list-style: none; padding: 0; margin: 0; }
-.list li { margin-bottom: 16px; line-height: 1.5; } /* a bit more spacing */
+.list li { margin-bottom: 16px; line-height: 1.5; }
 .msg { min-height: 20px; color: var(--muted); }
 
+/* Modal */
 .modal {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,.9); /* solid dark backdrop */
+  background: rgba(0,0,0,.9);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -53,25 +58,17 @@ h1, h2, h3, h4 { margin: 0 0 8px; }
 }
 .modal-content { width: min(900px, 92vw); max-height: 88vh; overflow: auto; background: #111827; }
 
+/* Links & dropdown */
 .link { color: var(--accent); cursor: pointer; text-decoration: underline; }
-
-/* Username dropdown */
 .dropdown { display: inline-block; position: relative; }
 .dropdown-content {
-  display: none;
-  position: absolute;
-  right: 0;
-  margin-top: 8px;
-  background: #111827;
-  border: 1px solid rgba(255,255,255,.12);
-  border-radius: 10px;
-  padding: 8px;
-  min-width: 140px;
-  z-index: 50;
+  display: none; position: absolute; right: 0; margin-top: 8px;
+  background: #111827; border: 1px solid rgba(255,255,255,.12);
+  border-radius: 10px; padding: 8px; min-width: 140px; z-index: 50;
 }
 .dropdown:hover .dropdown-content { display: block; }
 
-/* Star input */
+/* Stars */
 .stars { display: inline-flex; gap: 6px; }
-.star { font-size: 22px; cursor: pointer; color: #475569; }
-.star.active { color: #fbbf24; } /* amber */
+.star { font-size: 22px; cursor: pointer; color: #475569; user-select: none; }
+.star.active { color: #fbbf24; }
