@@ -1,10 +1,10 @@
-doctype html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
+  <meta charset="utf-8" />
   <title>Book Review Shop</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link href="./styles.css" rel="stylesheet">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <link href="./styles.css" rel="stylesheet" />
 </head>
 <body>
   <header class="site-header">
@@ -12,11 +12,15 @@ doctype html>
     <nav class="nav">
       <button id="nav-home" class="btn">Home</button>
       <button id="nav-catalog" class="btn">Catalog</button>
+
+      <!-- Account button (visible when logged OUT) -->
       <button id="nav-account" class="btn">Account</button>
+
+      <!-- Username dropdown (visible when logged IN) -->
       <div id="user-dropdown" class="dropdown hidden">
         <button id="user-btn" class="btn"></button>
-        <div class="dropdown-content">
-          <button id="logout-btn" class="btn-danger">Logout</button>
+        <div class="dropdown-content card">
+          <button id="logout-btn" class="btn">Logout</button>
         </div>
       </div>
     </nav>
@@ -33,64 +37,77 @@ doctype html>
     <!-- Catalog -->
     <section id="catalog" class="hidden">
       <div class="toolbar card">
-        <input id="search-input" class="input" placeholder="Search by title or author">
+        <input id="search-input" class="input" placeholder="Search by title or author" />
         <button id="search-btn" class="btn">Search</button>
         <button id="clear-search" class="btn-secondary">Clear</button>
       </div>
       <div id="grid" class="grid"></div>
     </section>
 
-    <!-- Account -->
+    <!-- Account (own page) -->
     <section id="account" class="hidden">
-      <div class="card auth-card" id="login-form">
-        <h3>Login</h3>
-        <label>Username <input id="login-user" class="input"></label>
-        <label>Password <input id="login-pass" type="password" class="input"></label>
-        <button id="login-btn" class="btn-primary">Login</button>
-        <p id="login-msg" class="msg"></p>
-        <p>Don't have an account? <span id="show-register" class="link">Create Account</span></p>
-      </div>
-      <div class="card auth-card hidden" id="register-form">
-        <h3>Register</h3>
-        <label>Username <input id="reg-user" class="input"></label>
-        <label>Password <input id="reg-pass" type="password" class="input"></label>
-        <button id="register-btn" class="btn">Register</button>
-        <p id="register-msg" class="msg"></p>
-        <p>Already have an account? <span id="show-login" class="link">Login</span></p>
+      <div class="card auth-card">
+        <!-- Login form -->
+        <div id="login-form">
+          <h3>Login</h3>
+          <label>Username <input id="login-user" class="input" /></label>
+          <label>Password <input id="login-pass" type="password" class="input" /></label>
+          <button id="login-btn" class="btn-primary">Login</button>
+          <p id="login-msg" class="msg"></p>
+          <p class="muted">Please log in to add a review.</p>
+          <a id="show-register" class="link">Create Account</a>
+        </div>
+
+        <!-- Register form (hidden until toggled) -->
+        <div id="register-form" class="hidden">
+          <h3>Create Account</h3>
+          <label>Username <input id="reg-user" class="input" /></label>
+          <label>Password <input id="reg-pass" type="password" class="input" /></label>
+          <button id="register-btn" class="btn">Register</button>
+          <p id="register-msg" class="msg"></p>
+          <a id="show-login" class="link">Back to Login</a>
+        </div>
       </div>
     </section>
   </main>
 
-  <!-- Book modal -->
+  <!-- Book Modal -->
   <div id="book-modal" class="modal hidden">
     <div class="modal-content card">
-      <button id="modal-close" class="btn-close">×</button>
+      <button id="modal-close" class="btn-close" aria-label="Close">×</button>
+
       <div id="book-info"></div>
-      <div id="review-actions">
+
+      <div class="row" style="margin-top:8px;">
         <button id="add-review-btn" class="btn-primary">Add Review</button>
       </div>
-      <div id="review-editor" class="hidden">
+
+      <div id="review-editor" class="hidden" style="margin-top:12px;">
         <h4>Your review</h4>
-        <label>Rating:
-          <select id="review-stars" class="input">
-            <option value="1">1 ★</option>
-            <option value="2">2 ★★</option>
-            <option value="3">3 ★★★</option>
-            <option value="4">4 ★★★★</option>
-            <option value="5">5 ★★★★★</option>
-          </select>
-        </label>
-        <textarea id="my-review" rows="4" class="input"></textarea>
+        <div class="row">
+          <label>Rating
+            <select id="review-stars" class="input" style="max-width:120px;">
+              <option value="5">★★★★★ (5)</option>
+              <option value="4">★★★★☆ (4)</option>
+              <option value="3">★★★☆☆ (3)</option>
+              <option value="2">★★☆☆☆ (2)</option>
+              <option value="1">★☆☆☆☆ (1)</option>
+            </select>
+          </label>
+        </div>
+        <textarea id="my-review" rows="4" class="input" placeholder="Share your thoughts"></textarea>
         <div class="row">
           <button id="save-review" class="btn-primary">Save</button>
-          <button id="cancel-review" class="btn-secondary">Cancel</button>
+          <button id="cancel-review" class="btn btn-secondary">Cancel</button>
+          <button id="delete-review" class="btn btn-danger" title="Delete your review">Delete</button>
         </div>
         <p id="review-msg" class="msg"></p>
       </div>
-      <div>
+
+      <div style="margin-top:12px;">
         <h4>All reviews</h4>
         <ul id="reviews-list" class="list"></ul>
-        <button id="more-reviews" class="btn hidden">More reviews</button>
+        <button id="more-reviews" class="btn-secondary hidden">More reviews</button>
       </div>
     </div>
   </div>
