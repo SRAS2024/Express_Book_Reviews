@@ -1,60 +1,68 @@
 const express = require("express");
-let books = require("../booksdb.js");
+const router = express.Router();
 
-const public_routes = express.Router();
+// booksdb is an object keyed by ISBN
+const books = require("../booksdb.js");
 
-// Get full book list
-public_routes.get("/books", (req, res) => {
-  const bookArray = Object.entries(books).map(([isbn, book]) => ({
+/**
+ * Task 1: Get full list of books
+ * Response: { books: [ {isbn,title,author,...}, ... ] }
+ */
+router.get("/books", (_req, res) => {
+  const list = Object.entries(books).map(([isbn, b]) => ({
     isbn,
-    title: book.title,
-    author: book.author
+    title: b.title,
+    author: b.author,
+    description: b.description || "",
+    reviews: b.reviews || {}
   }));
-  return res.json({ books: bookArray });
+  return res.json({ books: list });
 });
 
-// Get book by ISBN
-public_routes.get("/isbn/:isbn", (req, res) => {
+/**
+ * Task 2: Get book by ISBN
+ * Response: book object
+ */
+router.get("/isbn/:isbn", (req, res) => {
   const { isbn } = req.params;
-  if (!books[isbn]) {
-    return res.status(404).json({ message: "Book not found" });
-  }
-  return res.json({ isbn, ...books[isbn] });
+  const b = books[isbn];
+  if (!b) return res.status(404).json({ message: "Book not found" });
+  return res.json({ isbn, ...b });
 });
 
-// Get books by author
-public_routes.get("/author/:author", (req, res) => {
-  const author = req.params.author.toLowerCase();
-  const results = Object.entries(books)
-    .filter(([isbn, book]) => book.author.toLowerCase().includes(author))
-    .map(([isbn, book]) => ({ isbn, title: book.title, author: book.author }));
-
-  if (results.length === 0) {
-    return res.status(404).json({ message: "No books found for this author" });
-  }
-  return res.json({ books: results });
+/**
+ * Task 3: Get all books by author (case-insensitive)
+ * Response: { books: [...] }
+ */
+router.get("/author/:author", (req, res) => {
+  const q = req.params.author.toLowerCase();
+  const result = Object.entries(books)
+    .filter(([, b]) => (b.author || "").toLowerCase().includes(q))
+    .map(([isbn, b]) => ({ isbn, ...b }));
+  return res.json({ books: result });
 });
 
-// Get books by title
-public_routes.get("/title/:title", (req, res) => {
-  const title = req.params.title.toLowerCase();
-  const results = Object.entries(books)
-    .filter(([isbn, book]) => book.title.toLowerCase().includes(title))
-    .map(([isbn, book]) => ({ isbn, title: book.title, author: book.author }));
-
-  if (results.length === 0) {
-    return res.status(404).json({ message: "No books found for this title" });
-  }
-  return res.json({ books: results });
+/**
+ * Task 4: Get all books by title (case-insensitive)
+ * Response: { books: [...] }
+ */
+router.get("/title/:title", (req, res) => {
+  const q = req.params.title.toLowerCase();
+  const result = Object.entries(books)
+    .filter(([, b]) => (b.title || "").toLowerCase().includes(q))
+    .map(([isbn, b]) => ({ isbn, ...b }));
+  return res.json({ books: result });
 });
 
-// Get reviews for a book
-public_routes.get("/review/:isbn", (req, res) => {
+/**
+ * Task 5: Get reviews of a book
+ * Response: { reviews: { username: text, ... } }
+ */
+router.get("/review/:isbn", (req, res) => {
   const { isbn } = req.params;
-  if (!books[isbn]) {
-    return res.status(404).json({ message: "Book not found" });
-  }
-  return res.json({ reviews: books[isbn].reviews || {} });
+  const b = books[isbn];
+  if (!b) return res.status(404).json({ message: "Book not found" });
+  return res.json({ reviews: b.reviews || {} });
 });
 
-module.exports.general = public_routes;
+module.exports.general = router;
