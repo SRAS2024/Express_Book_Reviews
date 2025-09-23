@@ -2,15 +2,19 @@ const $ = sel => document.querySelector(sel);
 const tokenKey = "brs_token";
 let currentUsername = null;
 
+// ---------------- AUTH STATE ----------------
 function setAuthState({ username, token }) {
   currentUsername = username || null;
   if (token) localStorage.setItem(tokenKey, token);
+
   const loggedIn = Boolean(token || localStorage.getItem(tokenKey));
 
+  // Toggle account dropdown vs account button
   $("#nav-account").classList.toggle("hidden", loggedIn);
-  $("#user-menu").classList.toggle("hidden", !loggedIn);
+  $("#user-dropdown").classList.toggle("hidden", !loggedIn);
+
   if (loggedIn && currentUsername) {
-    $("#user-name").textContent = currentUsername;
+    $("#user-btn").textContent = currentUsername;
   }
 }
 
@@ -28,18 +32,28 @@ async function fetchJSON(path, opts = {}) {
   return res.json();
 }
 
+// ---------------- NAVIGATION ----------------
 function show(sectionId) {
-  ["hero", "catalog", "login", "register"].forEach(id => $(`#${id}`).classList.add("hidden"));
+  ["hero", "catalog", "account"].forEach(id => $(`#${id}`).classList.add("hidden"));
   $(`#${sectionId}`).classList.remove("hidden");
 }
 
+// ---------------- CATALOG ----------------
 async function loadCatalog(query) {
   const grid = $("#grid");
   grid.innerHTML = "";
   let books = [];
-  const data = !query ? await fetchJSON("/books") : await searchBooks(query);
-  books = data.books || [];
-
+  if (!query) {
+    const data = await fetchJSON("/books");
+    books = data.books;
+  } else {
+    const q = query.trim().toLowerCase();
+    const byTitle = await fetchJSON(`/title/${encodeURIComponent(q)}`).catch(() => ({ books: [] }));
+    const byAuthor = await fetchJSON(`/author/${encodeURIComponent(q)}`).catch(() => ({ books: [] }));
+    const merged = new Map();
+    [...byTitle.books, ...byAuthor.books].forEach(b => merged.set(b.isbn, b));
+    books = [...merged.values()];
+  }
   for (const b of books) {
     const card = document.createElement("div");
     card.className = "tile";
@@ -54,52 +68,30 @@ async function loadCatalog(query) {
   }
 }
 
-async function searchBooks(query) {
-  const q = query.trim().toLowerCase();
-  const byTitle = await fetchJSON(`/title/${encodeURIComponent(q)}`).catch(() => ({ books: [] }));
-  const byAuthor = await fetchJSON(`/author/${encodeURIComponent(q)}`).catch(() => ({ books: [] }));
-  const merged = new Map();
-  [...byTitle.books, ...byAuthor.books].forEach(b => merged.set(b.isbn, b));
-  return { books: [...merged.values()] };
-}
+// ---------------- BOOK DETAILS ----------------
+let visibleReviews = 5;
 
 async function openBook(isbn) {
   const book = await fetchJSON(`/isbn/${isbn}`);
   const reviews = await fetchJSON(`/review/${isbn}`).catch(() => ({ reviews: {} }));
+
   $("#book-info").innerHTML = `
     <h3>${book.title}</h3>
     <p>Author: ${book.author}</p>
     <p>ISBN: ${book.isbn}</p>
-    <button id="add-review-btn" class="btn-primary">Add Review</button>
   `;
 
-  const list = $("#reviews-list");
-  list.innerHTML = "";
-  const entries = Object.entries(reviews.reviews || {});
-  entries.slice(0, 5).forEach(([user, text]) => {
-    const li = document.createElement("li");
-    li.textContent = `${user}: ${text}`;
-    list.appendChild(li);
-  });
+  renderReviews(reviews.reviews || {}, true);
 
-  $("#more-reviews").classList.toggle("hidden", entries.length <= 5);
-  $("#more-reviews").onclick = () => {
-    list.innerHTML = "";
-    entries.forEach(([user, text]) => {
-      const li = document.createElement("li");
-      li.textContent = `${user}: ${text}`;
-      list.appendChild(li);
-    });
-    $("#more-reviews").classList.add("hidden");
-  };
-
+  // Add review button logic
   $("#add-review-btn").onclick = () => {
     if (!localStorage.getItem(tokenKey)) {
-      closeModal();
-      show("login");
-    } else {
-      $("#review-editor").classList.remove("hidden");
+      closeModal(); // close modal first
+      show("account");
+      $("#login-msg").textContent = "Please log in to add a review.";
+      return;
     }
+    $("#review-editor").classList.remove("hidden");
   };
 
   $("#save-review").onclick = async () => {
@@ -112,26 +104,42 @@ async function openBook(isbn) {
         body: JSON.stringify({ review: `${"★".repeat(stars)} ${text}` })
       });
       $("#review-msg").textContent = out.message;
-      openBook(isbn);
+      openBook(isbn); // reload
     } catch (e) {
       $("#review-msg").textContent = e.message;
     }
   };
 
-  $("#delete-review").onclick = async () => {
-    try {
-      const out = await fetchJSON(`/customer/auth/review/${isbn}`, {
-        method: "DELETE",
-        headers: authHeader()
-      });
-      $("#review-msg").textContent = out.message;
-      openBook(isbn);
-    } catch (e) {
-      $("#review-msg").textContent = e.message;
-    }
+  $("#cancel-review").onclick = () => {
+    $("#review-editor").classList.add("hidden");
+    $("#my-review").value = "";
   };
 
   $("#book-modal").classList.remove("hidden");
+}
+
+function renderReviews(reviews, reset = false) {
+  const list = $("#reviews-list");
+  if (reset) visibleReviews = 5;
+  list.innerHTML = "";
+
+  const entries = Object.entries(reviews || {});
+  entries.slice(0, visibleReviews).forEach(([user, text]) => {
+    const li = document.createElement("li");
+    li.textContent = `${user}: ${text}`;
+    list.appendChild(li);
+  });
+
+  const moreBtn = $("#more-reviews");
+  if (entries.length > visibleReviews) {
+    moreBtn.classList.remove("hidden");
+    moreBtn.onclick = () => {
+      visibleReviews += 5;
+      renderReviews(reviews);
+    };
+  } else {
+    moreBtn.classList.add("hidden");
+  }
 }
 
 function closeModal() {
@@ -141,18 +149,11 @@ function closeModal() {
   $("#review-editor").classList.add("hidden");
 }
 
-$("#modal-close").addEventListener("click", closeModal);
-$("#get-started").addEventListener("click", () => { show("catalog"); loadCatalog(); });
-$("#nav-home").addEventListener("click", () => show("hero"));
-$("#nav-catalog").addEventListener("click", () => { show("catalog"); loadCatalog(); });
-$("#nav-account").addEventListener("click", () => { show("login"); });
-
-$("#search-btn").addEventListener("click", () => loadCatalog($("#search-input").value));
-$("#clear-search").addEventListener("click", () => { $("#search-input").value = ""; loadCatalog(); });
-
+// ---------------- ACCOUNT ----------------
 $("#login-btn").addEventListener("click", async () => {
   const username = $("#login-user").value.trim();
   const password = $("#login-pass").value;
+  $("#login-msg").textContent = "";
   try {
     const out = await fetchJSON("/customer/login", {
       method: "POST",
@@ -160,25 +161,28 @@ $("#login-btn").addEventListener("click", async () => {
     });
     setAuthState({ username: out.username, token: out.accessToken });
     show("catalog");
-    loadCatalog();
   } catch (e) {
     $("#login-msg").textContent = e.message;
   }
 });
 
-$("#link-register").addEventListener("click", () => { show("register"); });
-
 $("#register-btn").addEventListener("click", async () => {
   const username = $("#reg-user").value.trim();
   const password = $("#reg-pass").value;
+  $("#register-msg").textContent = "";
   try {
     const out = await fetchJSON("/customer/register", {
       method: "POST",
       body: JSON.stringify({ username, password })
     });
-    setAuthState({ username, token: out.accessToken });
+    $("#register-msg").textContent = out.message;
+    // auto login
+    const loginOut = await fetchJSON("/customer/login", {
+      method: "POST",
+      body: JSON.stringify({ username, password })
+    });
+    setAuthState({ username: loginOut.username, token: loginOut.accessToken });
     show("catalog");
-    loadCatalog();
   } catch (e) {
     $("#register-msg").textContent = e.message;
   }
@@ -190,5 +194,24 @@ $("#logout-btn").addEventListener("click", () => {
   show("hero");
 });
 
-// Initial state
+// Toggle between login/register forms
+$("#show-register").addEventListener("click", () => {
+  $("#login-form").classList.add("hidden");
+  $("#register-form").classList.remove("hidden");
+});
+$("#show-login").addEventListener("click", () => {
+  $("#register-form").classList.add("hidden");
+  $("#login-form").classList.remove("hidden");
+});
+
+// ---------------- NAV BUTTONS ----------------
+$("#modal-close").addEventListener("click", closeModal);
+$("#get-started").addEventListener("click", () => { show("catalog"); loadCatalog(); });
+$("#nav-home").addEventListener("click", () => show("hero"));
+$("#nav-catalog").addEventListener("click", () => { show("catalog"); loadCatalog(); });
+$("#nav-account").addEventListener("click", () => show("account"));
+$("#search-btn").addEventListener("click", () => loadCatalog($("#search-input").value));
+$("#clear-search").addEventListener("click", () => { $("#search-input").value = ""; loadCatalog(); });
+
+// ---------------- INIT ----------------
 setAuthState({ username: null });
