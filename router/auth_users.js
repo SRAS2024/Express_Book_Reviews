@@ -7,14 +7,10 @@ let users = require("../users.js");
 
 const regd_users = express.Router();
 
-/** Helper: find user */
 function findUser(username) {
   return users.find(u => u.username === username);
 }
 
-/** Task 6: Register new user
- * POST /customer/register {username, password}
- */
 regd_users.post("/register", (req, res) => {
   const { username, password } = req.body || {};
   if (!username || !password) {
@@ -27,10 +23,6 @@ regd_users.post("/register", (req, res) => {
   return res.status(201).json({ message: "User registered successfully" });
 });
 
-/** Task 7: Login
- * POST /customer/login {username, password}
- * Returns { username, accessToken }
- */
 regd_users.post("/login", (req, res) => {
   const { username, password } = req.body || {};
   const ok = users.find(u => u.username === username && u.password === password);
@@ -42,7 +34,6 @@ regd_users.post("/login", (req, res) => {
   return res.json({ message: "Login successful", username, accessToken });
 });
 
-/** Task 8/9: Add/Modify/Delete review (auth required via middleware) */
 regd_users.put("/auth/review/:isbn", (req, res) => {
   const { isbn } = req.params;
   const { review } = req.body || {};
@@ -50,7 +41,7 @@ regd_users.put("/auth/review/:isbn", (req, res) => {
 
   if (!username) return res.status(401).json({ message: "Unauthorized" });
   if (!books[isbn]) return res.status(404).json({ message: "Book not found" });
-  if (!review || !review.text || typeof review.rating !== "number") {
+  if (!review || typeof review.text !== "string" || typeof review.rating !== "number") {
     return res.status(400).json({ message: "Missing review text or rating" });
   }
 
