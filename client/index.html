@@ -12,7 +12,12 @@
     <nav class="nav">
       <button id="nav-home" class="btn">Home</button>
       <button id="nav-catalog" class="btn">Catalog</button>
-      <button id="nav-account" class="btn"><span id="account-label">Account</span></button>
+      <div class="account-container">
+        <button id="nav-account" class="btn"><span id="account-label">Account</span></button>
+        <div id="account-dropdown" class="dropdown hidden">
+          <button id="logout-btn" class="btn btn-danger">Logout</button>
+        </div>
+      </div>
     </nav>
   </header>
 
@@ -55,11 +60,6 @@
           <button id="register-btn" class="btn">Register</button>
           <p id="register-msg" class="msg"></p>
         </div>
-      </div>
-
-      <div id="signed-in" class="hidden">
-        <p id="welcome-msg"></p>
-        <button id="logout-btn" class="btn btn-danger">Logout</button>
       </div>
     </div>
   </div>
