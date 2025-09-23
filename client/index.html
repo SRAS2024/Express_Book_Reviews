@@ -12,28 +12,7 @@
     <nav class="nav">
       <button id="nav-home" class="btn">Home</button>
       <button id="nav-catalog" class="btn">Catalog</button>
-      <div id="account-menu" class="dropdown">
-        <button id="nav-account" class="btn">Account</button>
-        <div id="account-dropdown" class="dropdown-content hidden">
-          <div id="auth-section">
-            <h3>Login</h3>
-            <label>Username <input id="login-user" class="input"></label>
-            <label>Password <input id="login-pass" type="password" class="input"></label>
-            <button id="login-btn" class="btn-primary">Login</button>
-            <p id="login-msg" class="msg"></p>
-            <hr>
-            <h3>Register</h3>
-            <label>Username <input id="reg-user" class="input"></label>
-            <label>Password <input id="reg-pass" type="password" class="input"></label>
-            <button id="register-btn" class="btn">Register</button>
-            <p id="register-msg" class="msg"></p>
-          </div>
-          <div id="loggedin-section" class="hidden">
-            <p id="welcome-msg"></p>
-            <button id="nav-logout" class="btn btn-danger">Logout</button>
-          </div>
-        </div>
-      </div>
+      <button id="nav-account" class="btn"><span id="account-label">Account</span></button>
     </nav>
   </header>
 
@@ -54,15 +33,45 @@
     </section>
   </main>
 
-  <div id="book-modal" class="modal hidden">
-    <div class="modal-content card">
-      <button id="modal-close" class="btn-close">×</button>
+  <!-- Account modal -->
+  <div id="account-modal" class="modal hidden" aria-hidden="true">
+    <div class="modal-content card" role="dialog" aria-modal="true" aria-labelledby="account-title">
+      <button id="account-close" class="btn-close" aria-label="Close">×</button>
+      <h3 id="account-title">Account</h3>
+
+      <div id="signed-out">
+        <div class="card">
+          <h4>Login</h4>
+          <label>Username <input id="login-user" class="input" autocomplete="username"></label>
+          <label>Password <input id="login-pass" type="password" class="input" autocomplete="current-password"></label>
+          <button id="login-btn" class="btn-primary">Login</button>
+          <p id="login-msg" class="msg"></p>
+        </div>
+
+        <div class="card">
+          <h4>Register</h4>
+          <label>Username <input id="reg-user" class="input" autocomplete="username"></label>
+          <label>Password <input id="reg-pass" type="password" class="input" autocomplete="new-password"></label>
+          <button id="register-btn" class="btn">Register</button>
+          <p id="register-msg" class="msg"></p>
+        </div>
+      </div>
+
+      <div id="signed-in" class="hidden">
+        <p id="welcome-msg"></p>
+        <button id="logout-btn" class="btn btn-danger">Logout</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Book modal -->
+  <div id="book-modal" class="modal hidden" aria-hidden="true">
+    <div class="modal-content card" role="dialog" aria-modal="true" aria-labelledby="book-title">
+      <button id="modal-close" class="btn-close" aria-label="Close">×</button>
       <div id="book-info"></div>
 
-      <!-- Add Review Button -->
       <button id="add-review-btn" class="btn-primary">Add Review</button>
 
-      <!-- Review Form -->
       <div id="review-editor" class="hidden">
         <h4>Your Review</h4>
         <label for="star-rating">Rating:</label>
@@ -81,7 +90,6 @@
         <p id="review-msg" class="msg"></p>
       </div>
 
-      <!-- Reviews -->
       <div>
         <h4>All Reviews</h4>
         <ul id="reviews-list" class="list"></ul>
