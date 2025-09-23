@@ -12,6 +12,7 @@
     <nav class="nav">
       <button id="nav-home" class="btn">Home</button>
       <button id="nav-catalog" class="btn">Catalog</button>
+
       <div class="account-container">
         <button id="nav-account" class="btn"><span id="account-label">Account</span></button>
         <div id="account-dropdown" class="dropdown hidden">
@@ -28,9 +29,9 @@
       <button id="get-started" class="btn-primary">Get started</button>
     </section>
 
-    <section id="catalog" class="hidden">
+    <section id="catalog" class="hidden" aria-live="polite">
       <div class="toolbar card">
-        <input id="search-input" class="input" placeholder="Search by title or author">
+        <input id="search-input" class="input" placeholder="Search by title or author" aria-label="Search by title or author">
         <button id="search-btn" class="btn">Search</button>
         <button id="clear-search" class="btn-secondary">Clear</button>
       </div>
@@ -50,7 +51,7 @@
           <label>Username <input id="login-user" class="input" autocomplete="username"></label>
           <label>Password <input id="login-pass" type="password" class="input" autocomplete="current-password"></label>
           <button id="login-btn" class="btn-primary">Login</button>
-          <p id="login-msg" class="msg"></p>
+          <p id="login-msg" class="msg" aria-live="polite"></p>
         </div>
 
         <div class="card">
@@ -58,7 +59,7 @@
           <label>Username <input id="reg-user" class="input" autocomplete="username"></label>
           <label>Password <input id="reg-pass" type="password" class="input" autocomplete="new-password"></label>
           <button id="register-btn" class="btn">Register</button>
-          <p id="register-msg" class="msg"></p>
+          <p id="register-msg" class="msg" aria-live="polite"></p>
         </div>
       </div>
     </div>
@@ -87,7 +88,7 @@
           <button id="submit-review" class="btn-primary">Submit</button>
           <button id="cancel-review" class="btn">Cancel</button>
         </div>
-        <p id="review-msg" class="msg"></p>
+        <p id="review-msg" class="msg" aria-live="polite"></p>
       </div>
 
       <div>
