@@ -5,7 +5,19 @@ let currentUser = null;
 let currentISBN = null;
 let starValue = 0;
 
-// Force-hide modal
+// Keep dropdown open by click, not hover
+const userMenu = $("#user-menu");
+const userNameBtn = $("#user-name");
+userNameBtn?.addEventListener("click", (e) => {
+  e.stopPropagation();
+  userMenu.classList.toggle("open");
+});
+// Click outside closes it
+document.addEventListener("click", (e) => {
+  if (!userMenu.contains(e.target)) userMenu.classList.remove("open");
+});
+
+// Force-hide modal on load
 function forceHideModal() {
   const m = $("#book-modal");
   if (m) {
@@ -15,7 +27,7 @@ function forceHideModal() {
 }
 forceHideModal();
 
-// Page switcher (also always hide modal)
+// Page switcher
 function showPage(id) {
   ["home", "catalog", "account", "register"].forEach((sec) => {
     const el = document.getElementById(sec);
@@ -24,18 +36,25 @@ function showPage(id) {
   closeModal();
 }
 
-// Auth state to header
+// Auth state in header
 function setAuthState({ username = null, token = null } = {}) {
   if (username) currentUser = username;
   if (token) localStorage.setItem(tokenKey, token);
-  const loggedIn = Boolean(localStorage.getItem(tokenKey));
 
-  $("#nav-account").classList.toggle("hidden", loggedIn);
-  $("#user-menu").classList.toggle("hidden", !loggedIn);
-  if (loggedIn && username) $("#user-name").textContent = username;
-  if (!loggedIn) {
+  const hasToken = Boolean(localStorage.getItem(tokenKey));
+  $("#nav-account").classList.toggle("hidden", hasToken);
+  $("#user-menu").classList.toggle("hidden", !hasToken);
+
+  if (hasToken && username) {
+    $("#user-name").textContent = username;
+    $("#user-name").setAttribute("title", "Log out");
+  }
+
+  if (!hasToken) {
     currentUser = null;
     $("#user-name").textContent = "";
+    $("#user-name").removeAttribute("title");
+    $("#user-menu").classList.remove("open");
     localStorage.removeItem(tokenKey);
   }
 }
@@ -105,7 +124,7 @@ async function loadCatalog(query) {
   }
 }
 
-// ========= Modal / Reviews =========
+// ========= Reviews / Modal =========
 function renderStars(container, value) {
   container.innerHTML = "";
   for (let i = 1; i <= 5; i++) {
@@ -124,10 +143,12 @@ function renderStars(container, value) {
 function reviewLI(user, payload) {
   let text = "";
   let rating = null;
+  let createdAt = 0;
 
   if (typeof payload === "object") {
     text = payload.text;
     rating = payload.rating;
+    createdAt = Number(payload.createdAt || 0);
   } else if (typeof payload === "string") {
     if (payload.includes("|")) {
       const [t, r] = payload.split("|");
@@ -140,6 +161,7 @@ function reviewLI(user, payload) {
 
   const li = document.createElement("li");
   li.innerHTML = `<strong>${user}</strong>${rating ? ` • ${"★".repeat(rating)}${"☆".repeat(5-rating)}` : ""}<br>${escapeHtml(text)}`;
+  li.dataset.createdAt = createdAt;
   return li;
 }
 
@@ -156,7 +178,8 @@ async function openBook(isbn) {
   // Book details
   let book;
   try {
-    book = await fetchJSON(`/isbn/${isbn}`);
+    const { title, author } = await fetchJSON(`/isbn/${isbn}`);
+    book = { title, author, isbn };
   } catch {
     book = { title: `Book ${isbn}`, author: "Unknown", isbn };
   }
@@ -174,14 +197,21 @@ async function openBook(isbn) {
   } catch {
     rev = {};
   }
-  const entries = Object.entries(rev);
+
+  // Sort newest-first by createdAt if present, otherwise keep stable order
+  const entries = Object.entries(rev).sort((a, b) => {
+    const ca = typeof a[1] === "object" ? Number(a[1].createdAt || 0) : 0;
+    const cb = typeof b[1] === "object" ? Number(b[1].createdAt || 0) : 0;
+    return cb - ca;
+  });
+
   const list = $("#reviews-list");
   list.innerHTML = "";
 
   let shown = 0;
   const firstBatch = 5;
-  for (const [user, text] of entries.slice(0, firstBatch)) {
-    list.appendChild(reviewLI(user, text));
+  for (const [user, payload] of entries.slice(0, firstBatch)) {
+    list.appendChild(reviewLI(user, payload));
     shown++;
   }
 
@@ -189,8 +219,8 @@ async function openBook(isbn) {
   if (entries.length > shown) {
     moreBtn.classList.remove("hidden");
     moreBtn.onclick = () => {
-      for (const [user, text] of entries.slice(shown, shown + 10)) {
-        list.appendChild(reviewLI(user, text));
+      for (const [user, payload] of entries.slice(shown, shown + 10)) {
+        list.appendChild(reviewLI(user, payload));
       }
       shown += 10;
       if (shown >= entries.length) {
@@ -239,7 +269,7 @@ async function onSaveReview() {
       body: JSON.stringify({ review: { text, rating } }),
     });
     $("#review-msg").textContent = out.message || "Saved!";
-    openBook(currentISBN);
+    openBook(currentISBN); // reopen to refresh, newest-first
   } catch (e) {
     $("#review-msg").textContent = e.message;
   }
@@ -273,7 +303,7 @@ $("#book-modal").addEventListener("click", (e) => {
   if (e.target.id === "book-modal") closeModal();
 });
 
-// ========= Auth =========
+// ========= Auth actions =========
 $("#login-btn")?.addEventListener("click", async () => {
   const username = $("#login-username").value.trim();
   const password = $("#login-password").value;
@@ -332,9 +362,11 @@ $("#logout-btn")?.addEventListener("click", () => {
   showPage("home");
 });
 
+// Switchers
 $("#go-register")?.addEventListener("click", () => showPage("register"));
 $("#go-login")?.addEventListener("click", () => showPage("account"));
 
+// Nav
 $("#nav-home").addEventListener("click", () => showPage("home"));
 $("#nav-catalog").addEventListener("click", () => { showPage("catalog"); loadCatalog(); });
 $("#nav-account").addEventListener("click", () => showPage("account"));
@@ -343,16 +375,20 @@ $("#get-started").addEventListener("click", () => { showPage("catalog"); loadCat
 $("#search-btn").addEventListener("click", () => loadCatalog($("#search-input").value));
 $("#clear-search").addEventListener("click", () => { $("#search-input").value = ""; loadCatalog(); });
 
-// ========= Init =========
-// Clear any invalid token on load by trying a simple check
+// ========= Init: validate token with backend =========
 (async () => {
+  const token = localStorage.getItem(tokenKey);
+  if (!token) {
+    setAuthState({ username: null, token: null });
+    showPage("home");
+    return;
+  }
   try {
-    // try hitting a protected route to see if token works
-    await fetchJSON("/customer/auth/review/test", { headers: authHeader() });
-    setAuthState({});
+    const me = await fetchJSON("/customer/auth/me", { headers: authHeader() });
+    setAuthState({ username: me.username, token });
   } catch {
     localStorage.removeItem(tokenKey);
-    setAuthState({});
+    setAuthState({ username: null, token: null });
   }
+  showPage("home");
 })();
-showPage("home");
