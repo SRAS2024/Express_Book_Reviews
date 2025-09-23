@@ -25,7 +25,7 @@ h1,h2,h3,h4{ margin:0 0 8px; }
 .btn:hover{ opacity:.9; transform:translateY(-1px); }
 .btn-close{ float:right; font-size:20px; line-height:1; padding:4px 8px; background:transparent; border:none; }
 
-.hidden{ display:none; }
+.hidden{ display:none !important; } /* <- ensure hidden always wins */
 .muted{ color:var(--muted); }
 
 .card{
@@ -48,8 +48,9 @@ h1,h2,h3,h4{ margin:0 0 8px; }
 .list li{ margin-bottom:14px; line-height:1.5; } /* 1.5 spacing between reviews */
 .msg{ min-height:20px; color:var(--muted); }
 
+/* Modal: solid dim overlay; hidden state wins above via !important */
 .modal{
-  position:fixed; inset:0; background:rgba(0,0,0,.9); /* solid dim overlay */
+  position:fixed; inset:0; background:rgba(0,0,0,.9);
   display:flex; align-items:center; justify-content:center; z-index:100;
 }
 .modal-content{
