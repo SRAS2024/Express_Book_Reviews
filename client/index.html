@@ -9,7 +9,7 @@
 <body>
   <header class="site-header">
     <h1>Book Review Shop</h1>
-    <nav class="nav" aria-label="Main navigation">
+    <nav class="nav">
       <button id="nav-home" class="btn">Home</button>
       <button id="nav-catalog" class="btn">Catalog</button>
       <button id="nav-login" class="btn">Login</button>
@@ -20,102 +20,64 @@
 
   <main id="main">
     <section id="hero" class="card">
-      <h2>Welcome to Book Review Shop</h2>
-      <p>Browse books, search by title or author, read community reviews, and share your own thoughts after you log in.</p>
-      <button id="get-started" class="btn-primary">Get Started</button>
+      <h2>Welcome</h2>
+      <p>Browse books, read reviews, and share your thoughts after you login.</p>
+      <button id="get-started" class="btn-primary">Get started</button>
     </section>
 
-    <section id="catalog" class="hidden" aria-label="Book Catalog">
+    <section id="catalog" class="hidden">
       <div class="toolbar card">
-        <input id="search-input" class="input" placeholder="Search by title or author" aria-label="Search books">
+        <input id="search-input" class="input" placeholder="Search by title or author">
         <button id="search-btn" class="btn">Search</button>
         <button id="clear-search" class="btn-secondary">Clear</button>
       </div>
-      <div id="grid" class="grid" aria-live="polite"></div>
+      <div id="grid" class="grid"></div>
     </section>
 
-    <section id="auth" class="hidden" aria-label="User Authentication">
-      <div class="card tabs">
+    <section id="auth" class="hidden">
+      <div class="tabs card">
         <div class="tab-bar">
-          <button id="tab-login" class="tab active" aria-controls="pane-login">Login</button>
-          <button id="tab-register" class="tab" aria-controls="pane-register">Register</button>
+          <button class="tab active" data-tab="login-pane">Login</button>
+          <button class="tab" data-tab="register-pane">Register</button>
         </div>
-
-        <div id="pane-login" class="tab-pane active" role="tabpanel" aria-labelledby="tab-login">
-          <label for="login-user">Username</label>
-          <input id="login-user" class="input" autocomplete="username">
-
-          <label for="login-pass">Password</label>
-          <input id="login-pass" type="password" class="input" autocomplete="current-password">
-
+        <div id="login-pane" class="tab-pane active">
+          <h3>Login</h3>
+          <label>Username <input id="login-user" class="input"></label>
+          <label>Password <input id="login-pass" type="password" class="input"></label>
           <button id="login-btn" class="btn-primary">Login</button>
-          <p id="login-msg" class="msg" role="alert"></p>
-
-          <p class="muted-small">
-            No account yet?
-            <button id="goto-register" class="linklike">Create Account</button>
-          </p>
+          <p id="login-msg" class="msg"></p>
+          <p><button id="link-register" class="linklike">Create Account</button></p>
         </div>
-
-        <div id="pane-register" class="tab-pane" role="tabpanel" aria-labelledby="tab-register">
-          <label for="reg-user">Username</label>
-          <input id="reg-user" class="input" autocomplete="username">
-
-          <label for="reg-pass">Password</label>
-          <input id="reg-pass" type="password" class="input" autocomplete="new-password">
-
+        <div id="register-pane" class="tab-pane">
+          <h3>Register</h3>
+          <label>Username <input id="reg-user" class="input"></label>
+          <label>Password <input id="reg-pass" type="password" class="input"></label>
           <button id="register-btn" class="btn">Register</button>
-          <p id="register-msg" class="msg" role="alert"></p>
+          <p id="register-msg" class="msg"></p>
         </div>
       </div>
     </section>
   </main>
 
-  <!-- Book Modal -->
-  <div id="book-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="book-title">
+  <div id="book-modal" class="modal hidden">
     <div class="modal-content card">
-      <button id="modal-close" class="btn-close" aria-label="Close modal">×</button>
-
-      <!-- Book Info -->
-      <div id="book-info" class="book-info"></div>
-
-      <!-- Add Review entry point under book info -->
-      <div class="row" style="margin: 0 24px 8px;">
-        <button id="add-review-btn" class="btn">Add Review</button>
-      </div>
-
-      <!-- Your review editor -->
-      <div id="review-editor" class="hidden" style="margin: 0 24px;">
-        <h4>Your Review</h4>
-
-        <div class="stars" id="my-stars" aria-label="Your star rating" role="radiogroup">
-          <button class="star" data-v="1" aria-checked="false" role="radio">★</button>
-          <button class="star" data-v="2" aria-checked="false" role="radio">★</button>
-          <button class="star" data-v="3" aria-checked="false" role="radio">★</button>
-          <button class="star" data-v="4" aria-checked="false" role="radio">★</button>
-          <button class="star" data-v="5" aria-checked="false" role="radio">★</button>
-        </div>
-
-        <textarea id="my-review" rows="4" class="input" placeholder="Write your review here"></textarea>
-        <div class="row" style="justify-content: flex-end;">
-          <button id="cancel-review" class="btn-secondary">Cancel</button>
+      <button id="modal-close" class="btn-close">×</button>
+      <div id="book-info"></div>
+      <button id="add-review-btn" class="btn-primary hidden">Add Review</button>
+      <div id="review-editor" class="hidden">
+        <h4>Your review</h4>
+        <div class="stars" id="star-container"></div>
+        <textarea id="my-review" rows="4" class="input"></textarea>
+        <div class="row">
           <button id="save-review" class="btn-primary">Submit</button>
+          <button id="cancel-review" class="btn-secondary">Cancel</button>
         </div>
-        <p id="review-msg" class="msg" role="alert"></p>
+        <p id="review-msg" class="msg"></p>
       </div>
-
-      <!-- Community reviews -->
-      <div style="margin: 0 24px 16px;">
-        <div class="reviews-header">
-          <h4>Community Reviews</h4>
-          <div id="avg-rating" class="avg-rating"></div>
-        </div>
+      <div>
+        <h4>Community Reviews</h4>
         <ul id="reviews-list" class="list"></ul>
-
-        <!-- More reviews link -->
-        <div class="row" style="justify-content: flex-end;">
-          <button id="more-reviews" class="linklike">More reviews</button>
-        </div>
+        <button id="more-reviews" class="linklike hidden">More reviews</button>
       </div>
     </div>
   </div>
