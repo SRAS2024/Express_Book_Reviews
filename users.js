@@ -1,34 +1,19 @@
-// In-memory user store. Use a real DB in production.
-let users = []; // { username, password }
+// Simple in-memory user store
+let users = [
+  // sample user for quick testing: user "test" with password "test"
+  { username: "test", password: "test" }
+];
 
 function isValid(username) {
-  return typeof username === "string" && username.trim().length >= 3;
+  return users.some(u => u.username === username);
 }
 
-function doesUserExist(username) {
-  return users.find(u => u.username === username);
+function authenticateUser(username, password) {
+  return users.find(u => u.username === username && u.password === password);
 }
 
-function register(username, password) {
-  if (!isValid(username) || typeof password !== "string" || password.length < 4) {
-    return { ok: false, msg: "Invalid username or password" };
-  }
-  if (doesUserExist(username)) {
-    return { ok: false, msg: "User already exists" };
-  }
+function addUser(username, password) {
   users.push({ username, password });
-  return { ok: true };
 }
 
-function authenticate(username, password) {
-  const user = users.find(u => u.username === username && u.password === password);
-  return !!user;
-}
-
-module.exports = {
-  users,
-  isValid,
-  doesUserExist,
-  register,
-  authenticate
-};
+module.exports = { users, isValid, authenticateUser, addUser };
