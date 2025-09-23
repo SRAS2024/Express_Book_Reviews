@@ -1,21 +1,19 @@
 const $ = sel => document.querySelector(sel);
 const tokenKey = "brs_token";
 let currentUsername = null;
+let visibleReviews = 5;
 
-// ---------------- AUTH STATE ----------------
+// --------------- Helpers ---------------
 function setAuthState({ username, token }) {
   currentUsername = username || null;
   if (token) localStorage.setItem(tokenKey, token);
 
   const loggedIn = Boolean(token || localStorage.getItem(tokenKey));
 
-  // Toggle account dropdown vs account button
   $("#nav-account").classList.toggle("hidden", loggedIn);
   $("#user-dropdown").classList.toggle("hidden", !loggedIn);
 
-  if (loggedIn && currentUsername) {
-    $("#user-btn").textContent = currentUsername;
-  }
+  if (loggedIn && currentUsername) $("#user-btn").textContent = currentUsername;
 }
 
 function authHeader() {
@@ -28,32 +26,51 @@ async function fetchJSON(path, opts = {}) {
     ...opts,
     headers: { "Content-Type": "application/json", ...(opts.headers || {}) }
   });
-  if (!res.ok) throw new Error((await res.json().catch(() => ({}))).message || res.statusText);
+  if (!res.ok) {
+    let msg = res.statusText;
+    try { msg = (await res.json()).message || msg; } catch {}
+    throw new Error(msg);
+  }
   return res.json();
 }
 
-// ---------------- NAVIGATION ----------------
 function show(sectionId) {
-  ["hero", "catalog", "account"].forEach(id => $(`#${id}`).classList.add("hidden"));
+  ["hero","catalog","account"].forEach(id => $(`#${id}`).classList.add("hidden"));
   $(`#${sectionId}`).classList.remove("hidden");
 }
 
-// ---------------- CATALOG ----------------
+// --------------- Catalog ---------------
+function normalizeBooksPayload(payload) {
+  // Accepts: {books:[...]} OR {books:{isbn:{...}}} OR {isbn:{...}} object
+  const src = payload?.books ?? payload;
+  if (Array.isArray(src)) return src;
+  if (src && typeof src === "object") {
+    return Object.entries(src).map(([isbn, info]) => ({ isbn, ...info }));
+  }
+  return [];
+}
+
 async function loadCatalog(query) {
   const grid = $("#grid");
   grid.innerHTML = "";
   let books = [];
+
   if (!query) {
-    const data = await fetchJSON("/books");
-    books = data.books;
+    books = normalizeBooksPayload(await fetchJSON("/books"));
   } else {
-    const q = query.trim().toLowerCase();
-    const byTitle = await fetchJSON(`/title/${encodeURIComponent(q)}`).catch(() => ({ books: [] }));
-    const byAuthor = await fetchJSON(`/author/${encodeURIComponent(q)}`).catch(() => ({ books: [] }));
+    const q = encodeURIComponent(query.trim());
+    const byT = normalizeBooksPayload(await fetchJSON(`/title/${q}`).catch(() => ({})));
+    const byA = normalizeBooksPayload(await fetchJSON(`/author/${q}`).catch(() => ({})));
     const merged = new Map();
-    [...byTitle.books, ...byAuthor.books].forEach(b => merged.set(b.isbn, b));
+    [...byT, ...byA].forEach(b => merged.set(b.isbn, b));
     books = [...merged.values()];
   }
+
+  if (!books.length) {
+    grid.innerHTML = `<div class="card">No books found.</div>`;
+    return;
+  }
+
   for (const b of books) {
     const card = document.createElement("div");
     card.className = "tile";
@@ -68,43 +85,52 @@ async function loadCatalog(query) {
   }
 }
 
-// ---------------- BOOK DETAILS ----------------
-let visibleReviews = 5;
+// --------------- Book Details ---------------
+function closeModal() {
+  $("#book-modal").classList.add("hidden");
+  $("#review-editor").classList.add("hidden");
+  $("#review-msg").textContent = "";
+  $("#my-review").value = "";
+  visibleReviews = 5;
+}
 
 async function openBook(isbn) {
-  const book = await fetchJSON(`/isbn/${isbn}`);
-  const reviews = await fetchJSON(`/review/${isbn}`).catch(() => ({ reviews: {} }));
+  // support both direct object or wrapped
+  const bookRaw = await fetchJSON(`/isbn/${isbn}`);
+  const book = bookRaw?.book ?? bookRaw;
+  const revRaw = await fetchJSON(`/review/${isbn}`).catch(() => ({}));
+  const reviews = revRaw?.reviews ?? revRaw ?? {};
 
   $("#book-info").innerHTML = `
     <h3>${book.title}</h3>
     <p>Author: ${book.author}</p>
-    <p>ISBN: ${book.isbn}</p>
+    <p>ISBN: ${isbn}</p>
   `;
 
-  renderReviews(reviews.reviews || {}, true);
-
-  // Add review button logic
+  // Add Review button
   $("#add-review-btn").onclick = () => {
     if (!localStorage.getItem(tokenKey)) {
-      closeModal(); // close modal first
-      show("account");
+      closeModal();            // close the modal
+      show("account");         // route to account
       $("#login-msg").textContent = "Please log in to add a review.";
       return;
     }
     $("#review-editor").classList.remove("hidden");
   };
 
+  // Save / Cancel / Delete handlers
   $("#save-review").onclick = async () => {
     const text = $("#my-review").value.trim();
     const stars = $("#review-stars").value;
+    if (!text) { $("#review-msg").textContent = "Please write a review."; return; }
     try {
       const out = await fetchJSON(`/customer/auth/review/${isbn}`, {
         method: "PUT",
         headers: authHeader(),
         body: JSON.stringify({ review: `${"★".repeat(stars)} ${text}` })
       });
-      $("#review-msg").textContent = out.message;
-      openBook(isbn); // reload
+      $("#review-msg").textContent = out.message || "Saved!";
+      await openBook(isbn); // reload
     } catch (e) {
       $("#review-msg").textContent = e.message;
     }
@@ -115,41 +141,51 @@ async function openBook(isbn) {
     $("#my-review").value = "";
   };
 
+  $("#delete-review").onclick = async () => {
+    try {
+      const out = await fetchJSON(`/customer/auth/review/${isbn}`, {
+        method: "DELETE",
+        headers: authHeader()
+      });
+      $("#review-msg").textContent = out.message || "Deleted.";
+      await openBook(isbn);
+    } catch (e) {
+      $("#review-msg").textContent = e.message;
+    }
+  };
+
+  // Render reviews + "More reviews"
+  renderReviews(reviews, true);
+
   $("#book-modal").classList.remove("hidden");
 }
 
-function renderReviews(reviews, reset = false) {
+function renderReviews(reviewsObj, reset=false) {
   const list = $("#reviews-list");
+  const moreBtn = $("#more-reviews");
   if (reset) visibleReviews = 5;
+
+  const entries = Object.entries(reviewsObj || {});
   list.innerHTML = "";
 
-  const entries = Object.entries(reviews || {});
   entries.slice(0, visibleReviews).forEach(([user, text]) => {
     const li = document.createElement("li");
     li.textContent = `${user}: ${text}`;
     list.appendChild(li);
   });
 
-  const moreBtn = $("#more-reviews");
   if (entries.length > visibleReviews) {
     moreBtn.classList.remove("hidden");
     moreBtn.onclick = () => {
       visibleReviews += 5;
-      renderReviews(reviews);
+      renderReviews(reviewsObj);
     };
   } else {
     moreBtn.classList.add("hidden");
   }
 }
 
-function closeModal() {
-  $("#book-modal").classList.add("hidden");
-  $("#review-msg").textContent = "";
-  $("#my-review").value = "";
-  $("#review-editor").classList.add("hidden");
-}
-
-// ---------------- ACCOUNT ----------------
+// --------------- Account (Login / Register) ---------------
 $("#login-btn").addEventListener("click", async () => {
   const username = $("#login-user").value.trim();
   const password = $("#login-pass").value;
@@ -161,6 +197,7 @@ $("#login-btn").addEventListener("click", async () => {
     });
     setAuthState({ username: out.username, token: out.accessToken });
     show("catalog");
+    loadCatalog();
   } catch (e) {
     $("#login-msg").textContent = e.message;
   }
@@ -171,11 +208,12 @@ $("#register-btn").addEventListener("click", async () => {
   const password = $("#reg-pass").value;
   $("#register-msg").textContent = "";
   try {
-    const out = await fetchJSON("/customer/register", {
-      method: "POST",
-      body: JSON.stringify({ username, password })
-    });
-    $("#register-msg").textContent = out.message;
+    // try /customer/register first, fallback to /register if backend uses that
+    try {
+      await fetchJSON("/customer/register", { method:"POST", body: JSON.stringify({ username, password }) });
+    } catch {
+      await fetchJSON("/register", { method:"POST", body: JSON.stringify({ username, password }) });
+    }
     // auto login
     const loginOut = await fetchJSON("/customer/login", {
       method: "POST",
@@ -183,6 +221,7 @@ $("#register-btn").addEventListener("click", async () => {
     });
     setAuthState({ username: loginOut.username, token: loginOut.accessToken });
     show("catalog");
+    loadCatalog();
   } catch (e) {
     $("#register-msg").textContent = e.message;
   }
@@ -190,11 +229,11 @@ $("#register-btn").addEventListener("click", async () => {
 
 $("#logout-btn").addEventListener("click", () => {
   localStorage.removeItem(tokenKey);
-  setAuthState({ username: null });
+  setAuthState({ username:null });
   show("hero");
 });
 
-// Toggle between login/register forms
+// Toggle within account page
 $("#show-register").addEventListener("click", () => {
   $("#login-form").classList.add("hidden");
   $("#register-form").classList.remove("hidden");
@@ -204,14 +243,15 @@ $("#show-login").addEventListener("click", () => {
   $("#login-form").classList.remove("hidden");
 });
 
-// ---------------- NAV BUTTONS ----------------
+// --------------- Nav / Search / Modal controls ---------------
 $("#modal-close").addEventListener("click", closeModal);
 $("#get-started").addEventListener("click", () => { show("catalog"); loadCatalog(); });
 $("#nav-home").addEventListener("click", () => show("hero"));
 $("#nav-catalog").addEventListener("click", () => { show("catalog"); loadCatalog(); });
 $("#nav-account").addEventListener("click", () => show("account"));
+
 $("#search-btn").addEventListener("click", () => loadCatalog($("#search-input").value));
 $("#clear-search").addEventListener("click", () => { $("#search-input").value = ""; loadCatalog(); });
 
-// ---------------- INIT ----------------
-setAuthState({ username: null });
+// --------------- Init ---------------
+setAuthState({ username:null });
