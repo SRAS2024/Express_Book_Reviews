@@ -1,47 +1,63 @@
 const express = require("express");
-const router = express.Router();
-const { books } = require("../booksdb");
-const { register } = require("../users");
+const books = require("./booksdb");
+const { isValid, addUser } = require("./users");
 
-// Task 1: Get the book list
-router.get("/books", (req, res) => {
-  res.json({ books: Object.values(books) });
+const public_users = express.Router();
+
+// Task 1: Get book list
+public_users.get("/books", (req, res) => {
+  // Return normalized array for front end
+  const list = Object.entries(books).map(([isbn, b]) => ({
+    isbn, title: b.title, author: b.author
+  }));
+  res.json({ books: list });
 });
 
 // Task 2: Get book by ISBN
-router.get("/isbn/:isbn", (req, res) => {
-  const book = books[req.params.isbn];
+public_users.get("/isbn/:isbn", (req, res) => {
+  const { isbn } = req.params;
+  const book = books[isbn];
   if (!book) return res.status(404).json({ message: "Book not found" });
-  res.json(book);
+  res.json({ isbn, title: book.title, author: book.author });
 });
 
 // Task 3: Get all books by author
-router.get("/author/:author", (req, res) => {
-  const author = req.params.author.toLowerCase();
-  const result = Object.values(books).filter(b => b.author.toLowerCase() === author);
-  res.json({ books: result });
+public_users.get("/author/:author", (req, res) => {
+  const q = decodeURIComponent(req.params.author).toLowerCase();
+  const list = Object.entries(books)
+    .filter(([, b]) => b.author.toLowerCase().includes(q))
+    .map(([isbn, b]) => ({ isbn, title: b.title, author: b.author }));
+  res.json({ books: list });
 });
 
 // Task 4: Get all books by title
-router.get("/title/:title", (req, res) => {
-  const title = req.params.title.toLowerCase();
-  const result = Object.values(books).filter(b => b.title.toLowerCase() === title);
-  res.json({ books: result });
+public_users.get("/title/:title", (req, res) => {
+  const q = decodeURIComponent(req.params.title).toLowerCase();
+  const list = Object.entries(books)
+    .filter(([, b]) => b.title.toLowerCase().includes(q))
+    .map(([isbn, b]) => ({ isbn, title: b.title, author: b.author }));
+  res.json({ books: list });
 });
 
-// Task 5: Get book reviews by ISBN
-router.get("/review/:isbn", (req, res) => {
-  const book = books[req.params.isbn];
+// Task 5: Get book reviews
+public_users.get("/review/:isbn", (req, res) => {
+  const { isbn } = req.params;
+  const book = books[isbn];
   if (!book) return res.status(404).json({ message: "Book not found" });
-  res.json({ isbn: book.isbn, reviews: book.reviews || {} });
+  res.json({ reviews: book.reviews || {} });
 });
 
 // Task 6: Register new user
-router.post("/register", (req, res) => {
+public_users.post("/register", (req, res) => {
   const { username, password } = req.body || {};
-  const result = register(username, password);
-  if (!result.ok) return res.status(400).json({ message: result.msg });
-  res.json({ message: "User registered successfully" });
+  if (!username || !password) {
+    return res.status(400).json({ message: "Username and password required" });
+  }
+  if (isValid(username)) {
+    return res.status(409).json({ message: "User already exists" });
+  }
+  addUser(username, password);
+  return res.json({ message: "User registered successfully" });
 });
 
-module.exports.general = router;
+module.exports.general = public_users;
