@@ -122,13 +122,22 @@ function renderStars(container, value) {
 }
 
 function reviewLI(user, payload) {
-  let text = String(payload);
+  let text = "";
   let rating = null;
-  if (text.includes("|")) {
-    const [t, r] = text.split("|");
-    text = t;
-    rating = Number(r);
+
+  if (typeof payload === "object") {
+    text = payload.text;
+    rating = payload.rating;
+  } else if (typeof payload === "string") {
+    if (payload.includes("|")) {
+      const [t, r] = payload.split("|");
+      text = t;
+      rating = Number(r);
+    } else {
+      text = payload;
+    }
   }
+
   const li = document.createElement("li");
   li.innerHTML = `<strong>${user}</strong>${rating ? ` • ${"★".repeat(rating)}${"☆".repeat(5-rating)}` : ""}<br>${escapeHtml(text)}`;
   return li;
@@ -168,9 +177,10 @@ async function openBook(isbn) {
   const entries = Object.entries(rev);
   const list = $("#reviews-list");
   list.innerHTML = "";
-  const maxVisible = 5;
+
   let shown = 0;
-  for (const [user, text] of entries.slice(0, maxVisible)) {
+  const firstBatch = 5;
+  for (const [user, text] of entries.slice(0, firstBatch)) {
     list.appendChild(reviewLI(user, text));
     shown++;
   }
@@ -179,10 +189,13 @@ async function openBook(isbn) {
   if (entries.length > shown) {
     moreBtn.classList.remove("hidden");
     moreBtn.onclick = () => {
-      for (const [user, text] of entries.slice(shown)) {
+      for (const [user, text] of entries.slice(shown, shown + 10)) {
         list.appendChild(reviewLI(user, text));
       }
-      moreBtn.classList.add("hidden");
+      shown += 10;
+      if (shown >= entries.length) {
+        moreBtn.classList.add("hidden");
+      }
     };
   } else {
     moreBtn.classList.add("hidden");
@@ -197,7 +210,6 @@ async function openBook(isbn) {
 
   $("#add-review").onclick = () => {
     if (!loggedIn) {
-      // Close modal and route to login page
       closeModal();
       showPage("account");
       $("#login-msg").textContent = "Please login to add a review.";
@@ -224,7 +236,7 @@ async function onSaveReview() {
     const out = await fetchJSON(`/customer/auth/review/${currentISBN}`, {
       method: "PUT",
       headers: { ...authHeader() },
-      body: JSON.stringify({ review: `${text}|${rating}` }),
+      body: JSON.stringify({ review: { text, rating } }),
     });
     $("#review-msg").textContent = out.message || "Saved!";
     openBook(currentISBN);
@@ -257,7 +269,6 @@ function closeModal() {
   starValue = 0;
 }
 $("#modal-close").addEventListener("click", closeModal);
-// Click outside the modal content closes it too
 $("#book-modal").addEventListener("click", (e) => {
   if (e.target.id === "book-modal") closeModal();
 });
@@ -303,7 +314,6 @@ $("#register-btn")?.addEventListener("click", async () => {
       method: "POST",
       body: JSON.stringify({ username, password }),
     });
-    // Auto-login then go to catalog
     const login = await fetchJSON("/customer/login", {
       method: "POST",
       body: JSON.stringify({ username, password }),
@@ -322,11 +332,9 @@ $("#logout-btn")?.addEventListener("click", () => {
   showPage("home");
 });
 
-// Switchers
 $("#go-register")?.addEventListener("click", () => showPage("register"));
 $("#go-login")?.addEventListener("click", () => showPage("account"));
 
-// ========= Nav =========
 $("#nav-home").addEventListener("click", () => showPage("home"));
 $("#nav-catalog").addEventListener("click", () => { showPage("catalog"); loadCatalog(); });
 $("#nav-account").addEventListener("click", () => showPage("account"));
@@ -336,5 +344,15 @@ $("#search-btn").addEventListener("click", () => loadCatalog($("#search-input").
 $("#clear-search").addEventListener("click", () => { $("#search-input").value = ""; loadCatalog(); });
 
 // ========= Init =========
-setAuthState({});
+// Clear any invalid token on load by trying a simple check
+(async () => {
+  try {
+    // try hitting a protected route to see if token works
+    await fetchJSON("/customer/auth/review/test", { headers: authHeader() });
+    setAuthState({});
+  } catch {
+    localStorage.removeItem(tokenKey);
+    setAuthState({});
+  }
+})();
 showPage("home");
