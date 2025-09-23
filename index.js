@@ -23,27 +23,34 @@ app.use(
   })
 );
 
-// ✅ Serve only /client as static frontend
-app.use(express.static(path.join(__dirname, "client")));
+// ✅ Serve static frontend only from /client
+const clientPath = path.join(__dirname, "client");
+app.use(express.static(clientPath));
 
-// Protect customer routes
+// ✅ API routes (backend)
 app.use("/customer/auth/*", verifyJwt);
-
-// Routers
 app.use("/customer", customer_routes);
 app.use("/", genl_routes);
 
-// ✅ Route root (/) to frontend
+// ✅ Serve frontend index.html for non-API routes
 app.get("/", (req, res) => {
-  res.sendFile(path.join(__dirname, "client", "index.html"));
+  res.sendFile(path.join(clientPath, "index.html"));
 });
 
-// ✅ Catch-all for frontend navigation (avoid exposing backend files)
+// Catch-all: only for frontend routes, not backend
 app.get(/^\/(?!customer|api).*/, (req, res) => {
-  res.sendFile(path.join(__dirname, "client", "index.html"));
+  res.sendFile(path.join(clientPath, "index.html"));
+});
+
+// Fallback for unknown API
+app.use((req, res, next) => {
+  if (req.originalUrl.startsWith("/customer") || req.originalUrl.startsWith("/api")) {
+    return res.status(404).json({ message: "Route not found" });
+  }
+  next();
 });
 
 // Start server
 app.listen(PORT, () => {
-  console.log(`✅ Server running at http://localhost:${PORT}`);
+  console.log(`✅ Server is running at http://localhost:${PORT}`);
 });
