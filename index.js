@@ -23,22 +23,27 @@ app.use(
   })
 );
 
-// Serve static frontend files
+// ✅ Serve static frontend from /client
 app.use(express.static(path.join(__dirname, "client")));
 
-// Protect customer routes that require login
+// Protect customer routes
 app.use("/customer/auth/*", verifyJwt);
 
 // Routers
 app.use("/customer", customer_routes);
 app.use("/", genl_routes);
 
-// Default route → serve frontend index.html
+// ✅ Always serve index.html for frontend routes
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "client", "index.html"));
+});
+
+// Optional: catch-all for React/SPA style routes
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "client", "index.html"));
 });
 
 // Start server
-app.listen(PORT, () =>
-  console.log(`✅ Server is running at http://localhost:${PORT}`)
-);
+app.listen(PORT, () => {
+  console.log(`✅ Server is running at http://localhost:${PORT}`);
+});
