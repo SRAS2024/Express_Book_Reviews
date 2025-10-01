@@ -5,6 +5,12 @@ let currentUser = null;
 let currentISBN = null;
 let starValue = 0;
 
+// For catalog pagination
+let allBooks = [];
+let shownBooks = 0;
+const booksPerPage = 20;
+const booksPerClick = 5;
+
 // Keep dropdown open by click, not hover
 const userMenu = $("#user-menu");
 const userNameBtn = $("#user-name");
@@ -29,7 +35,7 @@ forceHideModal();
 
 // Page switcher
 function showPage(id) {
-  ["home", "catalog", "account", "register"].forEach((sec) => {
+  ["home", "catalog", "account", "register", "forgot"].forEach((sec) => {
     const el = document.getElementById(sec);
     if (el) el.classList.toggle("hidden", sec !== id);
   });
@@ -77,230 +83,164 @@ async function fetchJSON(path, opts = {}) {
 }
 
 // ========= Catalog =========
-async function loadCatalog(query) {
+async function loadCatalog(query, genreFilter) {
   const grid = $("#grid");
   if (grid) grid.innerHTML = "";
+  shownBooks = 0;
+  allBooks = [];
 
-  let books = [];
   try {
     if (!query) {
       const data = await fetchJSON("/books");
-      books = data.books || [];
+      allBooks = data.books || [];
     } else {
-      const q = query.trim().toLowerCase();
-      const [byTitle, byAuthor] = await Promise.all([
-        fetchJSON(`/title/${encodeURIComponent(q)}`).catch(() => ({ books: [] })),
-        fetchJSON(`/author/${encodeURIComponent(q)}`).catch(() => ({ books: [] })),
+      // search by title, author, isbn, genre
+      const [byTitle, byAuthor, byISBN, byGenre] = await Promise.all([
+        fetchJSON(`/title/${encodeURIComponent(query)}`).catch(() => ({ books: [] })),
+        fetchJSON(`/author/${encodeURIComponent(query)}`).catch(() => ({ books: [] })),
+        fetchJSON(`/isbn/${encodeURIComponent(query)}`).catch(() => null),
+        fetchJSON(`/genre/${encodeURIComponent(query)}`).catch(() => ({ books: [] })),
       ]);
+
       const merged = new Map();
-      [...(byTitle.books || []), ...(byAuthor.books || [])].forEach((b) =>
+      [...(byTitle.books || []), ...(byAuthor.books || []), ...(byGenre.books || [])].forEach((b) =>
         merged.set(b.isbn, b)
       );
-      books = [...merged.values()];
+      if (byISBN && byISBN.isbn) merged.set(byISBN.isbn, byISBN);
+
+      allBooks = [...merged.values()];
+    }
+
+    if (genreFilter) {
+      allBooks = allBooks.filter(b => (b.genre || "").toLowerCase() === genreFilter.toLowerCase());
     }
   } catch (e) {
     console.error(e);
   }
 
-  if (!books.length) {
-    const empty = document.createElement("div");
-    empty.className = "card";
-    empty.textContent = "No books found.";
-    grid.appendChild(empty);
-    return;
-  }
+  renderMoreBooks();
+}
 
-  for (const b of books) {
+function renderMoreBooks() {
+  const grid = $("#grid");
+  const moreBtn = $("#more-books");
+  let count = 0;
+
+  for (; shownBooks < allBooks.length && count < (shownBooks ? booksPerClick : booksPerPage); shownBooks++, count++) {
+    const b = allBooks[shownBooks];
     const card = document.createElement("div");
     card.className = "tile";
     card.innerHTML = `
       <h4>${b.title}</h4>
       <p>${b.author}</p>
       <p class="muted">ISBN: ${b.isbn}</p>
+      <p class="muted">Genre: ${b.genre || "N/A"}</p>
       <button class="btn view-btn" data-isbn="${b.isbn}">View</button>
     `;
     card.querySelector(".view-btn").addEventListener("click", () => openBook(b.isbn));
     grid.appendChild(card);
   }
-}
 
-// ========= Reviews / Modal =========
-function renderStars(container, value) {
-  container.innerHTML = "";
-  for (let i = 1; i <= 5; i++) {
-    const s = document.createElement("span");
-    s.className = "star" + (i <= value ? " active" : "");
-    s.textContent = "★";
-    s.title = `${i} star${i > 1 ? "s" : ""}`;
-    s.addEventListener("click", () => {
-      starValue = i;
-      renderStars(container, starValue);
-    });
-    container.appendChild(s);
-  }
-}
-
-function reviewLI(user, payload) {
-  let text = "";
-  let rating = null;
-  let createdAt = 0;
-
-  if (typeof payload === "object") {
-    text = payload.text;
-    rating = payload.rating;
-    createdAt = Number(payload.createdAt || 0);
-  } else if (typeof payload === "string") {
-    if (payload.includes("|")) {
-      const [t, r] = payload.split("|");
-      text = t;
-      rating = Number(r);
-    } else {
-      text = payload;
-    }
-  }
-
-  const li = document.createElement("li");
-  li.innerHTML = `<strong>${user}</strong>${rating ? ` • ${"★".repeat(rating)}${"☆".repeat(5-rating)}` : ""}<br>${escapeHtml(text)}`;
-  li.dataset.createdAt = createdAt;
-  return li;
-}
-
-function escapeHtml(s) {
-  return s.replace(/[&<>"']/g, (ch) => ({
-    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-  }[ch]));
-}
-
-async function openBook(isbn) {
-  currentISBN = isbn;
-  starValue = 0;
-
-  // Book details
-  let book;
-  try {
-    const { title, author } = await fetchJSON(`/isbn/${isbn}`);
-    book = { title, author, isbn };
-  } catch {
-    book = { title: `Book ${isbn}`, author: "Unknown", isbn };
-  }
-  $("#book-info").innerHTML = `
-    <h3>${book.title}</h3>
-    <p>Author: ${book.author}</p>
-    <p>ISBN: ${book.isbn}</p>
-  `;
-
-  // Reviews
-  let rev = {};
-  try {
-    const data = await fetchJSON(`/review/${isbn}`);
-    rev = data.reviews || {};
-  } catch {
-    rev = {};
-  }
-
-  // Sort newest-first by createdAt if present, otherwise keep stable order
-  const entries = Object.entries(rev).sort((a, b) => {
-    const ca = typeof a[1] === "object" ? Number(a[1].createdAt || 0) : 0;
-    const cb = typeof b[1] === "object" ? Number(b[1].createdAt || 0) : 0;
-    return cb - ca;
-  });
-
-  const list = $("#reviews-list");
-  list.innerHTML = "";
-
-  let shown = 0;
-  const firstBatch = 5;
-  for (const [user, payload] of entries.slice(0, firstBatch)) {
-    list.appendChild(reviewLI(user, payload));
-    shown++;
-  }
-
-  const moreBtn = $("#more-reviews");
-  if (entries.length > shown) {
-    moreBtn.classList.remove("hidden");
-    moreBtn.onclick = () => {
-      for (const [user, payload] of entries.slice(shown, shown + 10)) {
-        list.appendChild(reviewLI(user, payload));
-      }
-      shown += 10;
-      if (shown >= entries.length) {
-        moreBtn.classList.add("hidden");
-      }
-    };
-  } else {
+  if (shownBooks >= allBooks.length) {
     moreBtn.classList.add("hidden");
+  } else {
+    moreBtn.classList.remove("hidden");
   }
-
-  const loggedIn = Boolean(localStorage.getItem(tokenKey));
-  $("#review-editor").classList.toggle("hidden", !loggedIn);
-  renderStars($("#star-input"), 0);
-
-  $("#save-review").onclick = onSaveReview;
-  $("#delete-review").onclick = onDeleteReview;
-
-  $("#add-review").onclick = () => {
-    if (!loggedIn) {
-      closeModal();
-      showPage("account");
-      $("#login-msg").textContent = "Please login to add a review.";
-      return;
-    }
-    $("#review-editor").classList.remove("hidden");
-    $("#my-review").focus();
-  };
-
-  const modal = $("#book-modal");
-  modal.classList.remove("hidden");
-  modal.setAttribute("aria-hidden", "false");
 }
 
-async function onSaveReview() {
-  if (!currentISBN) return;
-  const text = $("#my-review").value.trim();
-  if (!text) {
-    $("#review-msg").textContent = "Please enter some review text.";
+// ========= Search Suggestions =========
+const searchInput = $("#search-input");
+const suggestionBox = document.createElement("div");
+suggestionBox.className = "card";
+suggestionBox.style.position = "absolute";
+suggestionBox.style.background = "#111827";
+suggestionBox.style.zIndex = "20";
+suggestionBox.style.display = "none";
+searchInput.parentElement.appendChild(suggestionBox);
+
+searchInput.addEventListener("input", async () => {
+  const q = searchInput.value.trim();
+  if (!q) {
+    suggestionBox.style.display = "none";
     return;
   }
-  const rating = starValue || 0;
   try {
-    const out = await fetchJSON(`/customer/auth/review/${currentISBN}`, {
-      method: "PUT",
-      headers: { ...authHeader() },
-      body: JSON.stringify({ review: { text, rating } }),
+    const data = await fetchJSON(`/suggest/${encodeURIComponent(q)}`);
+    const suggestions = data.suggestions || [];
+    if (!suggestions.length) {
+      suggestionBox.style.display = "none";
+      return;
+    }
+    suggestionBox.innerHTML = "";
+    suggestions.forEach(s => {
+      const item = document.createElement("div");
+      item.className = "link";
+      item.textContent = `${s.title} (${s.author})`;
+      item.addEventListener("click", () => {
+        searchInput.value = s.title;
+        suggestionBox.style.display = "none";
+        loadCatalog(s.title);
+      });
+      suggestionBox.appendChild(item);
     });
-    $("#review-msg").textContent = out.message || "Saved!";
-    openBook(currentISBN); // reopen to refresh, newest-first
-  } catch (e) {
-    $("#review-msg").textContent = e.message;
+    suggestionBox.style.display = "block";
+  } catch {
+    suggestionBox.style.display = "none";
   }
-}
+});
 
-async function onDeleteReview() {
-  if (!currentISBN) return;
+searchInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    suggestionBox.style.display = "none";
+    loadCatalog(searchInput.value);
+  }
+});
+
+// ========= Forgot Password Flow =========
+$("#forgot-link")?.addEventListener("click", () => showPage("forgot"));
+
+$("#forgot-continue")?.addEventListener("click", async () => {
+  const username = $("#forgot-username").value.trim();
+  const msg = $("#forgot-msg");
+  msg.textContent = "";
+
+  if (!username) {
+    msg.textContent = "Please enter a username.";
+    return;
+  }
+
   try {
-    const out = await fetchJSON(`/customer/auth/review/${currentISBN}`, {
-      method: "DELETE",
-      headers: { ...authHeader() },
+    await fetchJSON("/customer/forgot", {
+      method: "POST",
+      body: JSON.stringify({ username }),
     });
-    $("#review-msg").textContent = out.message || "Deleted!";
-    openBook(currentISBN);
+    // valid username
+    $("#new-pass-field").classList.remove("hidden");
+    $("#forgot-continue").textContent = "Reset Password";
+    $("#forgot-continue").id = "forgot-reset"; // swap button action
+    $("#forgot-msg").textContent = "Enter a new password.";
+    document.querySelector("#forgot-reset").addEventListener("click", async () => {
+      const newPassword = $("#forgot-password").value;
+      if (!newPassword) {
+        $("#forgot-msg").textContent = "Please enter a new password.";
+        return;
+      }
+      try {
+        const out = await fetchJSON("/customer/reset", {
+          method: "POST",
+          body: JSON.stringify({ username, newPassword }),
+        });
+        setAuthState({ username: out.username, token: out.accessToken });
+        showPage("catalog");
+        loadCatalog();
+      } catch (e) {
+        $("#forgot-msg").textContent = e.message;
+      }
+    }, { once: true });
   } catch (e) {
-    $("#review-msg").textContent = e.message;
+    msg.textContent = e.message;
+    $("#forgot-username").style.borderColor = "red";
   }
-}
-
-function closeModal() {
-  const m = $("#book-modal");
-  if (!m) return;
-  m.classList.add("hidden");
-  m.setAttribute("aria-hidden", "true");
-  $("#review-msg").textContent = "";
-  $("#my-review").value = "";
-  starValue = 0;
-}
-$("#modal-close").addEventListener("click", closeModal);
-$("#book-modal").addEventListener("click", (e) => {
-  if (e.target.id === "book-modal") closeModal();
 });
 
 // ========= Auth actions =========
@@ -374,8 +314,9 @@ $("#get-started").addEventListener("click", () => { showPage("catalog"); loadCat
 
 $("#search-btn").addEventListener("click", () => loadCatalog($("#search-input").value));
 $("#clear-search").addEventListener("click", () => { $("#search-input").value = ""; loadCatalog(); });
+$("#more-books").addEventListener("click", () => renderMoreBooks());
 
-// ========= Init: validate token with backend =========
+// ========= Init =========
 (async () => {
   const token = localStorage.getItem(tokenKey);
   if (!token) {
