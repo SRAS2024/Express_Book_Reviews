@@ -30,7 +30,32 @@ regd_users.post("/login", (req, res) => {
   return res.json({ message: "Login successful", username, accessToken });
 });
 
-// Who am I (auth required; verifyJwt is mounted in index.js for /customer/auth/*)
+// Forgot Password: validate username
+regd_users.post("/forgot", (req, res) => {
+  const { username } = req.body || {};
+  if (!username) return res.status(400).json({ message: "Missing username" });
+  const user = findUser(username);
+  if (!user) return res.status(404).json({ message: "Invalid Username" });
+  return res.json({ message: "Valid Username", username });
+});
+
+// Reset Password
+regd_users.post("/reset", (req, res) => {
+  const { username, newPassword } = req.body || {};
+  if (!username || !newPassword) return res.status(400).json({ message: "Missing fields" });
+  const user = findUser(username);
+  if (!user) return res.status(404).json({ message: "Invalid Username" });
+
+  // update password
+  user.password = newPassword;
+
+  // auto-login after reset
+  const accessToken = jwt.sign({ username }, SECRET, { expiresIn: "1h" });
+  req.session.authorization = { accessToken, username };
+  return res.json({ message: "Password reset successful", username, accessToken });
+});
+
+// Who am I
 regd_users.get("/auth/me", (req, res) => {
   const username = req.user?.username;
   if (!username) return res.status(401).json({ message: "Not logged in" });
