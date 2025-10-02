@@ -211,7 +211,7 @@ function renderReviews(reviews) {
 // ========= Review Editor =========
 function showReviewEditor(text = "", rating = 0) {
   if (!currentUser) {
-    alert("You must be logged in to add or edit a review.");
+    showPage("account"); // redirect to login screen if not logged in
     return;
   }
   $("#review-editor").classList.remove("hidden");
