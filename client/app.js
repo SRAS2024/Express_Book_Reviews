@@ -9,7 +9,7 @@ let starValue = 0;
 let allBooks = [];
 let shownBooks = 0;
 const booksPerPage = 20;
-const booksPerClick = 10; // per spec: 20 initially, +10 each click
+const booksPerClick = 10;
 
 // Keep dropdown open by click, not hover
 const userMenu = $("#user-menu");
@@ -19,7 +19,7 @@ userNameBtn?.addEventListener("click", (e) => {
   userMenu.classList.toggle("open");
 });
 document.addEventListener("click", (e) => {
-  if (userMenu && !userMenu.contains(e.target)) userMenu.classList.remove("open");
+  if (!userMenu.contains(e.target)) userMenu.classList.remove("open");
 });
 
 // Force-hide modal on load
@@ -32,22 +32,6 @@ function forceHideModal() {
 }
 forceHideModal();
 
-// ========= Utilities =========
-function clearInputsOnNav() {
-  [
-    "login-username",
-    "login-password",
-    "register-username",
-    "register-password",
-    "forgot-username",
-    "forgot-password",
-    "search-input",
-  ].forEach((id) => {
-    const el = document.getElementById(id);
-    if (el) el.value = "";
-  });
-}
-
 // Page switcher
 function showPage(id) {
   ["home", "catalog", "account", "register", "forgot"].forEach((sec) => {
@@ -55,7 +39,13 @@ function showPage(id) {
     if (el) el.classList.toggle("hidden", sec !== id);
   });
   closeModal();
-  clearInputsOnNav();
+
+  // Clear sensitive inputs on navigation
+  ["login-username","login-password","register-username","register-password",
+   "forgot-username","forgot-password","search-input"].forEach(id=>{
+    const el = document.getElementById(id);
+    if (el) el.value = "";
+  });
 }
 
 // Auth state in header
@@ -64,19 +54,17 @@ function setAuthState({ username = null, token = null } = {}) {
   if (token) localStorage.setItem(tokenKey, token);
 
   const hasToken = Boolean(localStorage.getItem(tokenKey));
-  $("#nav-account")?.classList.toggle("hidden", hasToken);
-  $("#user-menu")?.classList.toggle("hidden", !hasToken);
+  $("#nav-account").classList.toggle("hidden", hasToken);
+  $("#user-menu").classList.toggle("hidden", !hasToken);
 
   if (hasToken && username) {
     $("#user-name").textContent = username;
-    $("#user-name").setAttribute("title", "Account");
   }
 
   if (!hasToken) {
     currentUser = null;
     $("#user-name").textContent = "";
-    $("#user-name").removeAttribute("title");
-    $("#user-menu")?.classList.remove("open");
+    $("#user-menu").classList.remove("open");
     localStorage.removeItem(tokenKey);
   }
 }
@@ -93,11 +81,7 @@ async function fetchJSON(path, opts = {}) {
   });
   const txt = await res.text();
   let data = {};
-  try {
-    data = txt ? JSON.parse(txt) : {};
-  } catch {
-    data = { message: txt };
-  }
+  try { data = txt ? JSON.parse(txt) : {}; } catch { data = { message: txt }; }
   if (!res.ok) throw new Error(data.message || res.statusText);
   return data;
 }
@@ -131,9 +115,7 @@ async function loadCatalog(query, genreFilter) {
     }
 
     if (genreFilter) {
-      allBooks = allBooks.filter(
-        (b) => (b.genre || "").toLowerCase() === genreFilter.toLowerCase()
-      );
+      allBooks = allBooks.filter(b => (b.genre || "").toLowerCase() === genreFilter.toLowerCase());
     }
   } catch (e) {
     console.error(e);
@@ -145,16 +127,9 @@ async function loadCatalog(query, genreFilter) {
 function renderMoreBooks() {
   const grid = $("#grid");
   const moreBtn = $("#more-books");
-  if (!grid || !moreBtn) return;
-
   let count = 0;
-  const batchSize = shownBooks ? booksPerClick : booksPerPage;
 
-  for (
-    ;
-    shownBooks < allBooks.length && count < batchSize;
-    shownBooks++, count++
-  ) {
+  for (; shownBooks < allBooks.length && count < (shownBooks ? booksPerClick : booksPerPage); shownBooks++, count++) {
     const b = allBooks[shownBooks];
     const card = document.createElement("div");
     card.className = "tile";
@@ -175,15 +150,15 @@ function renderMoreBooks() {
     moreBtn.classList.remove("hidden");
   }
 }
+$("#more-books")?.addEventListener("click", renderMoreBooks);
 
-// ========= Book Modal and Reviews =========
+// ========= Book Modal =========
 function closeModal() {
   const m = $("#book-modal");
   if (!m) return;
-  // clear editor every time modal closes
-  hideEditor(true);
   m.classList.add("hidden");
-  m.setAttribute("aria-hidden", "true");
+  m.setAttribute("aria-hidden","true");
+  $("#review-editor").classList.add("hidden");
 }
 $("#modal-close")?.addEventListener("click", closeModal);
 
@@ -191,7 +166,6 @@ async function openBook(isbn) {
   try {
     const b = await fetchJSON(`/isbn/${isbn}`);
     currentISBN = isbn;
-
     const info = $("#book-info");
     info.innerHTML = `
       <h2>${b.title}</h2>
@@ -201,10 +175,8 @@ async function openBook(isbn) {
     `;
 
     renderReviews(b.reviews || {});
-    hideEditor(true);
-
     $("#book-modal").classList.remove("hidden");
-    $("#book-modal").setAttribute("aria-hidden", "false");
+    $("#book-modal").setAttribute("aria-hidden","false");
   } catch (e) {
     console.error(e);
   }
@@ -213,151 +185,96 @@ async function openBook(isbn) {
 function renderReviews(reviews) {
   const list = $("#reviews-list");
   list.innerHTML = "";
-
   Object.entries(reviews).forEach(([username, r]) => {
     const li = document.createElement("li");
     li.innerHTML = `
       <strong>${username}</strong> (${r.rating}★): ${r.text}
     `;
-
     if (currentUser && username === currentUser) {
       const editBtn = document.createElement("span");
       editBtn.textContent = "✏️ Edit";
-      editBtn.className = "link";
+      editBtn.style.cursor = "pointer";
       editBtn.style.marginLeft = "8px";
       editBtn.addEventListener("click", () => {
-        showEditor();
-        $("#my-review").value = r.text || "";
-        starValue = Number(r.rating || 0);
-        updateStarDisplay();
+        showReviewEditor(r.text, r.rating);
       });
       li.appendChild(editBtn);
     }
-
     list.appendChild(li);
   });
 }
 
-// Editor helpers
-function showEditor() {
-  $("#review-editor").classList.remove("hidden");
-  $("#review-msg").textContent = "";
-  ensureStarWidget();
-}
-function hideEditor(clear = false) {
-  $("#review-editor").classList.add("hidden");
-  $("#review-msg").textContent = "";
-  if (clear) {
-    $("#my-review").value = "";
-    starValue = 0;
-    updateStarDisplay();
+// ========= Review Editor =========
+function showReviewEditor(text = "", rating = 0) {
+  if (!currentUser) {
+    alert("You must be logged in to add or edit a review.");
+    return;
   }
+  $("#review-editor").classList.remove("hidden");
+  $("#my-review").value = text;
+  starValue = rating;
+  updateStarDisplay();
 }
 
-function ensureStarWidget() {
-  const wrap = $("#star-input");
-  if (!wrap) return;
-  if (wrap.childElementCount) return;
-
+function updateStarDisplay() {
+  const container = $("#star-input");
+  container.innerHTML = "";
   for (let i = 1; i <= 5; i++) {
-    const s = document.createElement("span");
-    s.textContent = "★";
-    s.className = "star";
-    s.dataset.val = String(i);
-    s.addEventListener("mouseenter", () => previewStars(i));
-    s.addEventListener("mouseleave", () => updateStarDisplay());
-    s.addEventListener("click", () => {
+    const star = document.createElement("span");
+    star.textContent = "★";
+    star.className = "star" + (i <= starValue ? " active" : "");
+    star.addEventListener("click", () => {
       starValue = i;
       updateStarDisplay();
     });
-    wrap.appendChild(s);
+    container.appendChild(star);
   }
-  updateStarDisplay();
 }
 
-function previewStars(n) {
-  document.querySelectorAll("#star-input .star").forEach((el, idx) => {
-    el.classList.toggle("active", idx < n);
-  });
-}
-function updateStarDisplay() {
-  document.querySelectorAll("#star-input .star").forEach((el, idx) => {
-    el.classList.toggle("active", idx < starValue);
-  });
-}
-
-// Add Review button
-$("#add-review")?.addEventListener("click", () => {
-  const hasToken = Boolean(localStorage.getItem(tokenKey));
-  if (!hasToken) {
-    $("#review-msg").textContent = "Please login to write a review.";
-    return;
-  }
-  showEditor();
-  $("#my-review").value = "";
-  starValue = 0;
-  updateStarDisplay();
-});
-
-// Save review
+$("#add-review")?.addEventListener("click", () => showReviewEditor());
 $("#save-review")?.addEventListener("click", async () => {
-  const msg = $("#review-msg");
-  msg.textContent = "";
-
-  if (!currentISBN) {
-    msg.textContent = "No book is open.";
-    return;
-  }
   const text = $("#my-review").value.trim();
   if (!text || !starValue) {
-    msg.textContent = "Please choose a rating and write your review.";
+    $("#review-msg").textContent = "Please provide text and rating.";
     return;
   }
-
   try {
-    const data = await fetchJSON(`/customer/auth/review/${encodeURIComponent(currentISBN)}`, {
+    const data = await fetchJSON(`/customer/auth/review/${currentISBN}`, {
       method: "PUT",
       headers: { ...authHeader() },
-      body: JSON.stringify({ review: { text, rating: starValue } }),
+      body: JSON.stringify({ review: { text, rating: starValue } })
     });
     renderReviews(data.reviews || {});
-    hideEditor(true);
-    msg.textContent = "Saved.";
+    $("#review-editor").classList.add("hidden");
+    $("#review-msg").textContent = "";
   } catch (e) {
-    msg.textContent = e.message || "Failed to save.";
+    $("#review-msg").textContent = e.message;
   }
 });
-
-// Delete review
 $("#delete-review")?.addEventListener("click", async () => {
-  const msg = $("#review-msg");
-  msg.textContent = "";
-
-  if (!currentISBN) {
-    msg.textContent = "No book is open.";
-    return;
-  }
   try {
-    const data = await fetchJSON(
-      `/customer/auth/review/${encodeURIComponent(currentISBN)}`,
-      { method: "DELETE", headers: { ...authHeader() } }
-    );
+    const data = await fetchJSON(`/customer/auth/review/${currentISBN}`, {
+      method: "DELETE",
+      headers: { ...authHeader() }
+    });
     renderReviews(data.reviews || {});
-    hideEditor(true);
-    msg.textContent = "Deleted.";
+    $("#review-editor").classList.add("hidden");
   } catch (e) {
-    msg.textContent = e.message || "Failed to delete.";
+    $("#review-msg").textContent = e.message;
   }
 });
 
-// ========= Search and Suggestions =========
+// ========= Search Suggestions =========
 const searchInput = $("#search-input");
 const suggestionBox = document.createElement("div");
 suggestionBox.className = "card";
+suggestionBox.style.position = "absolute";
+suggestionBox.style.width = "100%";
+suggestionBox.style.left = "0";
 suggestionBox.style.display = "none";
-searchInput?.parentElement?.appendChild(suggestionBox);
+searchInput.parentElement.appendChild(suggestionBox);
 
-searchInput?.addEventListener("input", async () => {
+searchInput.addEventListener("input", async () => {
   const q = searchInput.value.trim();
   if (!q) {
     suggestionBox.style.display = "none";
@@ -371,7 +288,7 @@ searchInput?.addEventListener("input", async () => {
       return;
     }
     suggestionBox.innerHTML = "";
-    suggestions.forEach((s) => {
+    suggestions.forEach(s => {
       const item = document.createElement("div");
       item.className = "link";
       item.textContent = `${s.title} (${s.author})`;
@@ -388,146 +305,18 @@ searchInput?.addEventListener("input", async () => {
   }
 });
 
-searchInput?.addEventListener("keydown", (e) => {
+searchInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") {
     suggestionBox.style.display = "none";
-    loadCatalog(searchInput.value.trim());
+    loadCatalog(searchInput.value);
   }
 });
 
-$("#search-btn")?.addEventListener("click", () => {
-  suggestionBox.style.display = "none";
-  loadCatalog(searchInput.value.trim());
-});
-$("#clear-search")?.addEventListener("click", () => {
-  searchInput.value = "";
-  suggestionBox.style.display = "none";
-  loadCatalog();
-});
-$("#more-books")?.addEventListener("click", renderMoreBooks);
-
-// ========= Navigation wiring =========
+// ========= Navigation =========
 $("#nav-home")?.addEventListener("click", () => showPage("home"));
-$("#nav-catalog")?.addEventListener("click", () => {
-  showPage("catalog");
-  loadCatalog();
-});
+$("#nav-catalog")?.addEventListener("click", () => { showPage("catalog"); loadCatalog(); });
 $("#nav-account")?.addEventListener("click", () => showPage("account"));
-$("#get-started")?.addEventListener("click", () => {
-  showPage("catalog");
-  loadCatalog();
-});
-
-// ========= Auth: Login, Register, Forgot, Reset, Logout =========
-$("#login-btn")?.addEventListener("click", async () => {
-  const u = $("#login-username").value.trim();
-  const p = $("#login-password").value.trim();
-  const msg = $("#login-msg");
-  msg.textContent = "";
-  if (!u || !p) {
-    msg.textContent = "Enter username and password.";
-    return;
-  }
-  try {
-    const data = await fetchJSON("/customer/login", {
-      method: "POST",
-      body: JSON.stringify({ username: u, password: p }),
-    });
-    setAuthState({ username: data.username, token: data.accessToken });
-    showPage("catalog");
-    await loadCatalog();
-  } catch (e) {
-    msg.textContent = e.message || "Login failed.";
-  }
-});
-
-$("#register-btn")?.addEventListener("click", async () => {
-  const u = $("#register-username").value.trim();
-  const p = $("#register-password").value.trim();
-  const msg = $("#register-msg");
-  msg.textContent = "";
-  if (!u || !p) {
-    msg.textContent = "Choose a username and password.";
-    return;
-  }
-  try {
-    await fetchJSON("/customer/register", {
-      method: "POST",
-      body: JSON.stringify({ username: u, password: p }),
-    });
-    const data = await fetchJSON("/customer/login", {
-      method: "POST",
-      body: JSON.stringify({ username: u, password: p }),
-    });
-    setAuthState({ username: data.username, token: data.accessToken });
-    showPage("catalog");
-    await loadCatalog();
-  } catch (e) {
-    msg.textContent = e.message || "Registration failed.";
-  }
-});
-
-$("#logout-btn")?.addEventListener("click", () => {
-  localStorage.removeItem(tokenKey);
-  setAuthState({ username: null, token: null });
-  showPage("home");
-});
-
-// Forgot and reset, two step
-let forgotReadyForReset = false;
-$("#forgot-continue")?.addEventListener("click", async () => {
-  const u = $("#forgot-username").value.trim();
-  const msg = $("#forgot-msg");
-  msg.textContent = "";
-
-  if (!forgotReadyForReset) {
-    if (!u) {
-      msg.textContent = "Enter your username.";
-      return;
-    }
-    try {
-      await fetchJSON("/customer/forgot", {
-        method: "POST",
-        body: JSON.stringify({ username: u }),
-      });
-      $("#new-pass-field").classList.remove("hidden");
-      $("#forgot-continue").textContent = "Reset Password";
-      forgotReadyForReset = true;
-      msg.textContent = "Enter your new password, then press Reset Password.";
-    } catch (e) {
-      msg.textContent = e.message || "User not found.";
-      $("#forgot-username").classList.add("error");
-    }
-  } else {
-    const p = $("#forgot-password").value.trim();
-    if (!p) {
-      msg.textContent = "Enter a new password.";
-      return;
-    }
-    try {
-      const data = await fetchJSON("/customer/reset", {
-        method: "POST",
-        body: JSON.stringify({ username: u, newPassword: p }),
-      });
-      setAuthState({ username: data.username, token: data.accessToken });
-      showPage("catalog");
-      await loadCatalog();
-    } catch (e) {
-      msg.textContent = e.message || "Reset failed.";
-    } finally {
-      // clean up state
-      forgotReadyForReset = false;
-      $("#new-pass-field").classList.add("hidden");
-      $("#forgot-continue").textContent = "Continue";
-    }
-  }
-});
-
-// Cross links between auth pages
-$("#forgot-link")?.addEventListener("click", () => showPage("forgot"));
-$("#go-register")?.addEventListener("click", () => showPage("register"));
-$("#go-login-from-forgot")?.addEventListener("click", () => showPage("account"));
-$("#go-login-from-register")?.addEventListener("click", () => showPage("account"));
+$("#get-started")?.addEventListener("click", () => { showPage("catalog"); loadCatalog(); });
 
 // ========= Init =========
 (async () => {
@@ -544,4 +333,5 @@ $("#go-login-from-register")?.addEventListener("click", () => showPage("account"
     localStorage.removeItem(tokenKey);
     setAuthState({ username: null, token: null });
   }
-  showPage("home"); // default landing
+  showPage("home");
+})();
