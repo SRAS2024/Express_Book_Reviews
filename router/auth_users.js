@@ -81,7 +81,10 @@ regd_users.put("/auth/review/:isbn", (req, res) => {
     createdAt: Date.now()
   };
 
-  return res.json({ message: "Review added/updated", reviews: books[isbn].reviews });
+  return res.json({
+    message: "Review added/updated",
+    reviews: books[isbn].reviews
+  });
 });
 
 // Delete review
@@ -95,7 +98,29 @@ regd_users.delete("/auth/review/:isbn", (req, res) => {
   books[isbn].reviews = books[isbn].reviews || {};
   delete books[isbn].reviews[username];
 
-  return res.json({ message: "Review deleted", reviews: books[isbn].reviews });
+  return res.json({
+    message: "Review deleted",
+    reviews: books[isbn].reviews
+  });
+});
+
+// Fetch reviews with edit flags
+regd_users.get("/auth/reviews/:isbn", (req, res) => {
+  const { isbn } = req.params;
+  const username = req.user?.username;
+  const book = books[isbn];
+
+  if (!book) return res.status(404).json({ message: "Book not found" });
+
+  const reviewsWithFlags = {};
+  for (const [user, review] of Object.entries(book.reviews || {})) {
+    reviewsWithFlags[user] = {
+      ...review,
+      canEdit: user === username
+    };
+  }
+
+  return res.json({ reviews: reviewsWithFlags });
 });
 
 module.exports.authenticated = regd_users;
