@@ -36,12 +36,15 @@
 
     <!-- CATALOG -->
     <section id="catalog" class="hidden">
-      <div class="toolbar card">
-        <input id="search-input" class="input" placeholder="Search by title or author" />
+      <div class="toolbar card" style="position: relative;">
+        <input id="search-input" class="input" placeholder="Search by title, author, ISBN, or genre" />
         <button id="search-btn" class="btn">Search</button>
         <button id="clear-search" class="btn-secondary">Clear</button>
       </div>
       <div id="grid" class="grid"></div>
+      <div style="text-align:center; margin:16px;">
+        <button id="more-books" class="btn-secondary hidden">View more</button>
+      </div>
     </section>
 
     <!-- ACCOUNT (LOGIN PAGE) -->
@@ -53,7 +56,22 @@
         <button id="login-btn" class="btn-primary">Login</button>
       </div>
       <p id="login-msg" class="msg"></p>
+      <p class="muted"><span id="forgot-link" class="link">Forgot Password?</span></p>
       <p class="muted">No account? <span id="go-register" class="link">Create Account</span></p>
+    </section>
+
+    <!-- FORGOT PASSWORD PAGE -->
+    <section id="forgot" class="card hidden">
+      <h2>Reset Password</h2>
+      <label>Username <input id="forgot-username" class="input" /></label>
+      <div id="new-pass-field" class="hidden">
+        <label>New Password <input id="forgot-password" type="password" class="input" /></label>
+      </div>
+      <div class="row">
+        <button id="forgot-continue" class="btn-primary">Continue</button>
+      </div>
+      <p id="forgot-msg" class="msg"></p>
+      <p class="muted"><span id="go-login" class="link">Back to Login</span></p>
     </section>
 
     <!-- REGISTER PAGE -->
