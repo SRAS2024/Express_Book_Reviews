@@ -8,7 +8,7 @@
 </head>
 <body>
   <header class="site-header">
-    <h1>Postit Book Reviews</h1>
+    <h1 class="logo">Postit Book Reviews</h1>
     <nav class="nav">
       <button id="nav-home" class="btn">Home</button>
       <button id="nav-catalog" class="btn">Catalog</button>
@@ -36,10 +36,12 @@
 
     <!-- CATALOG -->
     <section id="catalog" class="hidden">
-      <div class="toolbar card" style="position: relative;">
-        <input id="search-input" class="input" placeholder="Search by title, author, ISBN, or genre" />
-        <button id="search-btn" class="btn">Search</button>
-        <button id="clear-search" class="btn-secondary">Clear</button>
+      <div class="toolbar card search-bar">
+        <input id="search-input" class="input" placeholder="Search by title, author, ISBN, or genre" aria-label="Search books"/>
+        <div class="toolbar-buttons">
+          <button id="search-btn" class="btn">Search</button>
+          <button id="clear-search" class="btn-secondary">Clear</button>
+        </div>
       </div>
       <div id="grid" class="grid"></div>
       <div style="text-align:center; margin:16px;">
@@ -50,8 +52,10 @@
     <!-- ACCOUNT (LOGIN PAGE) -->
     <section id="account" class="card hidden">
       <h2>Login</h2>
-      <label>Username <input id="login-username" class="input" /></label>
-      <label>Password <input id="login-password" type="password" class="input" /></label>
+      <label for="login-username">Username</label>
+      <input id="login-username" class="input" />
+      <label for="login-password">Password</label>
+      <input id="login-password" type="password" class="input" />
       <div class="row">
         <button id="login-btn" class="btn-primary">Login</button>
       </div>
@@ -63,9 +67,11 @@
     <!-- FORGOT PASSWORD PAGE -->
     <section id="forgot" class="card hidden">
       <h2>Reset Password</h2>
-      <label>Username <input id="forgot-username" class="input" /></label>
+      <label for="forgot-username">Username</label>
+      <input id="forgot-username" class="input" />
       <div id="new-pass-field" class="hidden">
-        <label>New Password <input id="forgot-password" type="password" class="input" /></label>
+        <label for="forgot-password">New Password</label>
+        <input id="forgot-password" type="password" class="input" />
       </div>
       <div class="row">
         <button id="forgot-continue" class="btn-primary">Continue</button>
@@ -77,8 +83,10 @@
     <!-- REGISTER PAGE -->
     <section id="register" class="card hidden">
       <h2>Create Account</h2>
-      <label>Username <input id="register-username" class="input" /></label>
-      <label>Password <input id="register-password" type="password" class="input" /></label>
+      <label for="register-username">Username</label>
+      <input id="register-username" class="input" />
+      <label for="register-password">Password</label>
+      <input id="register-password" type="password" class="input" />
       <div class="row">
         <button id="register-btn" class="btn-primary">Register</button>
       </div>
@@ -93,6 +101,7 @@
       <button id="modal-close" class="btn-close" aria-label="Close">×</button>
       <div id="book-info"></div>
 
+      <!-- Review Editor -->
       <div id="review-editor" class="hidden">
         <h4>Your review</h4>
         <div class="row" style="gap:12px;">
@@ -107,10 +116,12 @@
         <p id="review-msg" class="msg"></p>
       </div>
 
+      <!-- Add Review Button -->
       <div class="row" style="justify-content: space-between;">
         <button id="add-review" class="btn">Add review</button>
       </div>
 
+      <!-- Reviews -->
       <div class="card" style="margin:12px 0 0;">
         <h4>All reviews</h4>
         <ul id="reviews-list" class="list"></ul>
