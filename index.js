@@ -28,12 +28,14 @@ app.use(
 // Serve static frontend
 app.use(express.static(path.join(__dirname, "client")));
 
-// Guard all “/customer/auth/*” routes with JWT
+// Public routes
+app.use("/", genl_routes);
+
+// Protect only /customer/auth/* BEFORE mounting router
 app.use("/customer/auth", verifyJwt);
 
-// API routers
+// Customer routes (register, login, auth, reviews)
 app.use("/customer", customer_routes);
-app.use("/", genl_routes);
 
 // Frontend routes -> index.html
 app.get("/", (_req, res) => {
@@ -43,7 +45,7 @@ app.get("*", (_req, res) => {
   res.sendFile(path.join(__dirname, "client", "index.html"));
 });
 
-// 404 for any other API miss (after SPA fallback this rarely runs)
+// 404 fallback
 app.use((req, res) => res.status(404).json({ message: "Route not found" }));
 
 app.listen(PORT, () =>
