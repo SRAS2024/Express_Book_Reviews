@@ -171,23 +171,31 @@ textarea.input:focus {
   display: flex;
   align-items: center;
   gap: 10px;
-  position: relative; /* Fix: anchor suggestions to search bar */
+  position: relative;
 }
-.search-bar .input { flex: 1; min-width: 220px; }
-.toolbar-buttons { display: flex; gap: 8px; }
+.search-bar .input {
+  flex: 1;
+  min-width: 220px;
+  position: relative; /* anchor dropdown to input */
+}
 
-/* ===== Suggestions ===== */
+/* ===== Suggestions (fixed alignment) ===== */
+#search-input {
+  position: relative;
+  z-index: 31; /* ensure above dropdown */
+}
 #search-input + div.card {
   position: absolute;
-  top: calc(100% + 6px);
+  top: calc(100% + 4px); /* sit just below input */
   left: 0;
-  width: 100%; /* Fix: match input width instead of spanning full bar */
+  width: 100%;
   margin: 0;
   padding: 6px 0;
-  border-radius: var(--radius-sm);
   border: 1px solid var(--border);
-  box-shadow: var(--shadow);
+  border-top: none;
+  border-radius: 0 0 var(--radius-sm) var(--radius-sm);
   background: var(--card);
+  box-shadow: var(--shadow);
   max-height: 240px;
   overflow-y: auto;
   z-index: 30;
