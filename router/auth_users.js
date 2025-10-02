@@ -1,11 +1,3 @@
-function findUser(username) {
-  return users.find(u => u.username === username);
-}
-And in registration:
-users.push({ username, password });
-But now users.js exports helpers and stores users in an object, not an array. So find and push will break.
-✅ Updated auth_users.js
-Here’s the fully updated version that works with your new users.js:
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const { SECRET } = require("../middleware/auth");
