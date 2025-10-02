@@ -18,7 +18,6 @@ userNameBtn?.addEventListener("click", (e) => {
   e.stopPropagation();
   userMenu.classList.toggle("open");
 });
-// Click outside closes it
 document.addEventListener("click", (e) => {
   if (!userMenu.contains(e.target)) userMenu.classList.remove("open");
 });
@@ -101,7 +100,6 @@ async function loadCatalog(query, genreFilter) {
       const data = await fetchJSON("/books");
       allBooks = data.books || [];
     } else {
-      // search by title, author, isbn, genre
       const [byTitle, byAuthor, byISBN, byGenre] = await Promise.all([
         fetchJSON(`/title/${encodeURIComponent(query)}`).catch(() => ({ books: [] })),
         fetchJSON(`/author/${encodeURIComponent(query)}`).catch(() => ({ books: [] })),
@@ -192,7 +190,6 @@ function renderReviews(reviews) {
     li.innerHTML = `
       <strong>${username}</strong> (${r.rating}★): ${r.text}
     `;
-    // Show edit button only if logged-in user owns this review
     if (currentUser && username === currentUser) {
       const editBtn = document.createElement("span");
       editBtn.textContent = "✏️ Edit";
@@ -258,8 +255,11 @@ searchInput.addEventListener("keydown", (e) => {
   }
 });
 
-// ========= Auth + Forgot Password (unchanged except showPage clears inputs) =========
-// ... [keep the rest of your auth and forgot password flow as is, unchanged] ...
+// ========= Navigation =========
+$("#nav-home")?.addEventListener("click", () => showPage("home"));
+$("#nav-catalog")?.addEventListener("click", () => { showPage("catalog"); loadCatalog(); });
+$("#nav-account")?.addEventListener("click", () => showPage("account"));
+$("#get-started")?.addEventListener("click", () => { showPage("catalog"); loadCatalog(); });
 
 // ========= Init =========
 (async () => {
@@ -276,7 +276,6 @@ searchInput.addEventListener("keydown", (e) => {
     localStorage.removeItem(tokenKey);
     setAuthState({ username: null, token: null });
   }
-  // Default: show catalog with all books immediately
-  showPage("catalog");
-  loadCatalog();
+  // Default: show home first, then catalog when navigating
+  showPage("home");
 })();
