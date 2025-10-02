@@ -1,4 +1,4 @@
-const express = require("express");
+ express = require("express");
 const session = require("express-session");
 const path = require("path");
 
@@ -29,7 +29,7 @@ app.use(
 app.use(express.static(path.join(__dirname, "client")));
 
 // Guard all “/customer/auth/*” routes with JWT
-app.use("/customer/auth/*", verifyJwt);
+app.use("/customer/auth", verifyJwt);
 
 // API routers
 app.use("/customer", customer_routes);
