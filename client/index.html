@@ -1,4 +1,4 @@
-<!doctype html>
+!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -7,130 +7,117 @@
   <link href="./styles.css" rel="stylesheet" />
 </head>
 <body>
+  <!-- ===== Header ===== -->
   <header class="site-header">
     <h1 class="logo">Postit Book Reviews</h1>
     <nav class="nav">
       <button id="nav-home" class="btn">Home</button>
       <button id="nav-catalog" class="btn">Catalog</button>
-
-      <!-- Account tab (visible when logged OUT) -->
       <button id="nav-account" class="btn">Account</button>
 
-      <!-- Username + dropdown (visible when logged IN) -->
+      <!-- User menu (hidden until logged in) -->
       <div id="user-menu" class="dropdown hidden">
-        <button id="user-name" class="btn" title=""></button>
-        <div id="dropdown-content" class="dropdown-content">
-          <button id="logout-btn" class="btn btn-danger" style="width:100%">Logout</button>
+        <button id="user-name" class="btn-secondary"></button>
+        <div class="dropdown-content">
+          <a id="logout-btn" href="#">Logout</a>
         </div>
       </div>
     </nav>
   </header>
 
-  <main id="main">
-    <!-- HOME -->
-    <section id="home" class="card">
-      <h2>Welcome</h2>
-      <p>Browse books, read reviews, and share your thoughts after you login.</p>
-      <button id="get-started" class="btn-primary">Get started</button>
+  <!-- ===== Pages ===== -->
+  <main>
+    <!-- Home -->
+    <section id="home">
+      <div class="card">
+        <h2>Welcome to Postit Book Reviews</h2>
+        <p>Discover books, share your thoughts, and see what others think.</p>
+        <button id="get-started" class="btn-primary">Get Started</button>
+      </div>
     </section>
 
-    <!-- CATALOG -->
+    <!-- Catalog -->
     <section id="catalog" class="hidden">
-      <div class="toolbar card search-bar">
-        <input id="search-input" class="input" placeholder="Search by title, author, ISBN, or genre" aria-label="Search books"/>
-        <div class="toolbar-buttons">
-          <button id="search-btn" class="btn">Search</button>
-          <button id="clear-search" class="btn-secondary">Clear</button>
+      <div class="toolbar card">
+        <div class="search-bar">
+          <input id="search-input" class="input" placeholder="Search by title, author, ISBN, or genre" aria-label="Search books" />
+          <button class="btn-primary" onclick="loadCatalog(document.getElementById('search-input').value)">Search</button>
+          <button class="btn-secondary" onclick="document.getElementById('search-input').value=''; loadCatalog();">Clear</button>
         </div>
       </div>
       <div id="grid" class="grid"></div>
-      <div style="text-align:center; margin:16px;">
-        <button id="more-books" class="btn-secondary hidden">View more</button>
+      <div style="text-align:center;">
+        <button id="more-books" class="btn-secondary hidden">View More</button>
       </div>
     </section>
 
-    <!-- ACCOUNT (LOGIN PAGE) -->
-    <section id="account" class="card hidden">
-      <h2>Login</h2>
-      <label for="login-username">Username</label>
-      <input id="login-username" class="input" />
-      <label for="login-password">Password</label>
-      <input id="login-password" type="password" class="input" />
-      <div class="row">
+    <!-- Account/Login -->
+    <section id="account" class="hidden">
+      <div class="card">
+        <h2>Login</h2>
+        <input id="login-username" class="input" placeholder="Username" />
+        <input id="login-password" type="password" class="input" placeholder="Password" />
         <button id="login-btn" class="btn-primary">Login</button>
+        <div id="login-msg" class="msg"></div>
+        <p>
+          <a href="#" onclick="showPage('register')">Create account</a> |
+          <a href="#" onclick="showPage('forgot')">Forgot password?</a>
+        </p>
       </div>
-      <p id="login-msg" class="msg"></p>
-      <p class="muted"><span id="forgot-link" class="link">Forgot Password?</span></p>
-      <p class="muted">No account? <span id="go-register" class="link">Create Account</span></p>
     </section>
 
-    <!-- FORGOT PASSWORD PAGE -->
-    <section id="forgot" class="card hidden">
-      <h2>Reset Password</h2>
-      <label for="forgot-username">Username</label>
-      <input id="forgot-username" class="input" />
-      <div id="new-pass-field" class="hidden">
-        <label for="forgot-password">New Password</label>
-        <input id="forgot-password" type="password" class="input" />
-      </div>
-      <div class="row">
-        <button id="forgot-continue" class="btn-primary">Continue</button>
-      </div>
-      <p id="forgot-msg" class="msg"></p>
-      <p class="muted"><span id="go-login-from-forgot" class="link">Back to Login</span></p>
-    </section>
-
-    <!-- REGISTER PAGE -->
-    <section id="register" class="card hidden">
-      <h2>Create Account</h2>
-      <label for="register-username">Username</label>
-      <input id="register-username" class="input" />
-      <label for="register-password">Password</label>
-      <input id="register-password" type="password" class="input" />
-      <div class="row">
+    <!-- Register -->
+    <section id="register" class="hidden">
+      <div class="card">
+        <h2>Register</h2>
+        <input id="register-username" class="input" placeholder="Choose username" />
+        <input id="register-password" type="password" class="input" placeholder="Choose password" />
         <button id="register-btn" class="btn-primary">Register</button>
+        <div id="register-msg" class="msg"></div>
+        <p><a href="#" onclick="showPage('account')">Back to login</a></p>
       </div>
-      <p id="register-msg" class="msg"></p>
-      <p class="muted"><span id="go-login-from-register" class="link">Back to Login</span></p>
+    </section>
+
+    <!-- Forgot Password -->
+    <section id="forgot" class="hidden">
+      <div class="card">
+        <h2>Forgot Password</h2>
+        <input id="forgot-username" class="input" placeholder="Username" />
+        <input id="forgot-password" type="password" class="input hidden" placeholder="New password" />
+        <button id="forgot-btn" class="btn-primary">Continue</button>
+        <div id="forgot-msg" class="msg"></div>
+        <p><a href="#" onclick="showPage('account')">Back to login</a></p>
+      </div>
     </section>
   </main>
 
-  <!-- BOOK MODAL -->
+  <!-- ===== Book Modal ===== -->
   <div id="book-modal" class="modal hidden" aria-hidden="true">
-    <div class="modal-content card">
-      <button id="modal-close" class="btn-close" aria-label="Close">×</button>
+    <div class="modal-content">
+      <span id="modal-close" class="btn-close">&times;</span>
       <div id="book-info"></div>
 
-      <!-- Review Editor -->
+      <h3>Reviews</h3>
+      <ul id="reviews-list" class="list"></ul>
+      <button id="add-review" class="btn-secondary">Add Review</button>
+
       <div id="review-editor" class="hidden">
-        <h4>Your review</h4>
-        <div class="row" style="gap:12px;">
-          <span>Rating:</span>
-          <div id="star-input" class="stars" aria-label="Choose rating"></div>
-        </div>
-        <textarea id="my-review" rows="4" class="input" placeholder="Write your review..."></textarea>
+        <textarea id="my-review" class="input" rows="3" placeholder="Write your review"></textarea>
+        <div id="star-input" class="stars"></div>
         <div class="row">
           <button id="save-review" class="btn-primary">Save</button>
-          <button id="delete-review" class="btn btn-danger">Delete</button>
+          <button id="delete-review" class="btn-danger">Delete</button>
         </div>
-        <p id="review-msg" class="msg"></p>
-      </div>
-
-      <!-- Add Review Button -->
-      <div class="row" style="justify-content: space-between;">
-        <button id="add-review" class="btn">Add review</button>
-      </div>
-
-      <!-- Reviews -->
-      <div class="card" style="margin:12px 0 0;">
-        <h4>All reviews</h4>
-        <ul id="reviews-list" class="list"></ul>
-        <button id="more-reviews" class="btn-secondary hidden">More reviews</button>
+        <div id="review-msg" class="msg"></div>
       </div>
     </div>
   </div>
 
-  <footer class="site-footer">© 2025 Postit Book Reviews</footer>
-  <script src="./app.js" type="module"></script>
+  <!-- ===== Footer ===== -->
+  <footer class="site-footer">
+    &copy; 2025 Postit Book Reviews
+  </footer>
+
+  <script src="./app.js"></script>
 </body>
 </html>
