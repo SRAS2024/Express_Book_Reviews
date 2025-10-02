@@ -1,30 +1,44 @@
+function findUser(username) {
+  return users.find(u => u.username === username);
+}
+And in registration:
+users.push({ username, password });
+But now users.js exports helpers and stores users in an object, not an array. So find and push will break.
+✅ Updated auth_users.js
+Here’s the fully updated version that works with your new users.js:
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const { SECRET } = require("../middleware/auth");
 
 let books = require("../booksdb.js");
-let users = require("../users.js");
+const {
+  registerUser,
+  findUser,
+  validateUser,
+  resetPassword
+} = require("../users.js");
 
 const regd_users = express.Router();
-
-function findUser(username) {
-  return users.find(u => u.username === username);
-}
 
 // Register
 regd_users.post("/register", (req, res) => {
   const { username, password } = req.body || {};
   if (!username || !password) return res.status(400).json({ message: "Missing fields" });
-  if (findUser(username)) return res.status(400).json({ message: "User already exists" });
-  users.push({ username, password });
-  return res.status(201).json({ message: "User registered successfully" });
+
+  try {
+    registerUser(username, password);
+    return res.status(201).json({ message: "User registered successfully" });
+  } catch (e) {
+    return res.status(400).json({ message: e.message });
+  }
 });
 
 // Login
 regd_users.post("/login", (req, res) => {
   const { username, password } = req.body || {};
-  const ok = users.find(u => u.username === username && u.password === password);
-  if (!ok) return res.status(401).json({ message: "Invalid credentials" });
+  const user = validateUser(username, password);
+  if (!user) return res.status(401).json({ message: "Invalid credentials" });
+
   const accessToken = jwt.sign({ username }, SECRET, { expiresIn: "1h" });
   req.session.authorization = { accessToken, username };
   return res.json({ message: "Login successful", username, accessToken });
@@ -34,8 +48,10 @@ regd_users.post("/login", (req, res) => {
 regd_users.post("/forgot", (req, res) => {
   const { username } = req.body || {};
   if (!username) return res.status(400).json({ message: "Missing username" });
+
   const user = findUser(username);
   if (!user) return res.status(404).json({ message: "Invalid Username" });
+
   return res.json({ message: "Valid Username", username });
 });
 
@@ -43,16 +59,15 @@ regd_users.post("/forgot", (req, res) => {
 regd_users.post("/reset", (req, res) => {
   const { username, newPassword } = req.body || {};
   if (!username || !newPassword) return res.status(400).json({ message: "Missing fields" });
-  const user = findUser(username);
-  if (!user) return res.status(404).json({ message: "Invalid Username" });
 
-  // update password
-  user.password = newPassword;
-
-  // auto-login after reset
-  const accessToken = jwt.sign({ username }, SECRET, { expiresIn: "1h" });
-  req.session.authorization = { accessToken, username };
-  return res.json({ message: "Password reset successful", username, accessToken });
+  try {
+    resetPassword(username, newPassword);
+    const accessToken = jwt.sign({ username }, SECRET, { expiresIn: "1h" });
+    req.session.authorization = { accessToken, username };
+    return res.json({ message: "Password reset successful", username, accessToken });
+  } catch (e) {
+    return res.status(404).json({ message: e.message });
+  }
 });
 
 // Who am I
