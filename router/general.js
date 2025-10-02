@@ -6,7 +6,7 @@ const books = require("../booksdb.js");
 
 /**
  * Task 1: Get full list of books
- * Response: { books: [ {isbn,title,author,genre,...}, ... ] }
+ * Response: { books: [ {isbn,title,author,genre,description,reviews}, ... ] }
  */
 router.get("/books", (_req, res) => {
   const list = Object.entries(books).map(([isbn, b]) => ({
@@ -28,7 +28,14 @@ router.get("/isbn/:isbn", (req, res) => {
   const { isbn } = req.params;
   const b = books[isbn];
   if (!b) return res.status(404).json({ message: "Book not found" });
-  return res.json({ isbn, ...b });
+  return res.json({
+    isbn,
+    title: b.title,
+    author: b.author,
+    genre: b.genre || "",
+    description: b.description || "",
+    reviews: b.reviews || {}
+  });
 });
 
 /**
@@ -39,7 +46,14 @@ router.get("/author/:author", (req, res) => {
   const q = req.params.author.toLowerCase();
   const result = Object.entries(books)
     .filter(([, b]) => (b.author || "").toLowerCase().includes(q))
-    .map(([isbn, b]) => ({ isbn, ...b }));
+    .map(([isbn, b]) => ({
+      isbn,
+      title: b.title,
+      author: b.author,
+      genre: b.genre || "",
+      description: b.description || "",
+      reviews: b.reviews || {}
+    }));
   return res.json({ books: result });
 });
 
@@ -51,19 +65,36 @@ router.get("/title/:title", (req, res) => {
   const q = req.params.title.toLowerCase();
   const result = Object.entries(books)
     .filter(([, b]) => (b.title || "").toLowerCase().includes(q))
-    .map(([isbn, b]) => ({ isbn, ...b }));
+    .map(([isbn, b]) => ({
+      isbn,
+      title: b.title,
+      author: b.author,
+      genre: b.genre || "",
+      description: b.description || "",
+      reviews: b.reviews || {}
+    }));
   return res.json({ books: result });
 });
 
 /**
- * Task 5: Get reviews of a book
- * Response: { reviews: { username: text, ... } }
+ * Task 5: Get reviews of a book (public)
+ * Response: { reviews: { username: {text,rating}, ... } }
  */
 router.get("/review/:isbn", (req, res) => {
   const { isbn } = req.params;
   const b = books[isbn];
   if (!b) return res.status(404).json({ message: "Book not found" });
-  return res.json({ reviews: b.reviews || {} });
+
+  // Strip out sensitive flags, only show text/rating
+  const publicReviews = {};
+  for (const [user, review] of Object.entries(b.reviews || {})) {
+    publicReviews[user] = {
+      text: review.text,
+      rating: review.rating
+    };
+  }
+
+  return res.json({ reviews: publicReviews });
 });
 
 /**
@@ -74,13 +105,20 @@ router.get("/genre/:genre", (req, res) => {
   const q = req.params.genre.toLowerCase();
   const result = Object.entries(books)
     .filter(([, b]) => (b.genre || "").toLowerCase().includes(q))
-    .map(([isbn, b]) => ({ isbn, ...b }));
+    .map(([isbn, b]) => ({
+      isbn,
+      title: b.title,
+      author: b.author,
+      genre: b.genre || "",
+      description: b.description || "",
+      reviews: b.reviews || {}
+    }));
   return res.json({ books: result });
 });
 
 /**
  * Task 7: Search suggestions (title, author, isbn, genre)
- * Returns up to 3 suggestions
+ * Returns up to 5 suggestions for symmetry
  */
 router.get("/suggest/:q", (req, res) => {
   const q = (req.params.q || "").toLowerCase();
@@ -88,10 +126,12 @@ router.get("/suggest/:q", (req, res) => {
 
   const suggestions = [];
   for (const [isbn, b] of Object.entries(books)) {
-    if (isbn.includes(q) ||
-        (b.title && b.title.toLowerCase().includes(q)) ||
-        (b.author && b.author.toLowerCase().includes(q)) ||
-        (b.genre && b.genre.toLowerCase().includes(q))) {
+    if (
+      isbn.includes(q) ||
+      (b.title && b.title.toLowerCase().includes(q)) ||
+      (b.author && b.author.toLowerCase().includes(q)) ||
+      (b.genre && b.genre.toLowerCase().includes(q))
+    ) {
       suggestions.push({
         isbn,
         title: b.title,
@@ -99,7 +139,7 @@ router.get("/suggest/:q", (req, res) => {
         genre: b.genre || ""
       });
     }
-    if (suggestions.length >= 3) break;
+    if (suggestions.length >= 5) break;
   }
 
   return res.json({ suggestions });
