@@ -19,7 +19,7 @@ userNameBtn?.addEventListener("click", (e) => {
   userMenu.classList.toggle("open");
 });
 document.addEventListener("click", (e) => {
-  if (!userMenu.contains(e.target)) userMenu.classList.remove("open");
+  if (userMenu && !userMenu.contains(e.target)) userMenu.classList.remove("open");
 });
 
 // Force-hide modal on load
@@ -58,8 +58,8 @@ function setAuthState({ username = null, token = null } = {}) {
   if (token) localStorage.setItem(tokenKey, token);
 
   const hasToken = Boolean(localStorage.getItem(tokenKey));
-  $("#nav-account").classList.toggle("hidden", hasToken);
-  $("#user-menu").classList.toggle("hidden", !hasToken);
+  $("#nav-account")?.classList.toggle("hidden", hasToken);
+  $("#user-menu")?.classList.toggle("hidden", !hasToken);
 
   if (hasToken && username) {
     $("#user-name").textContent = username;
@@ -67,8 +67,9 @@ function setAuthState({ username = null, token = null } = {}) {
 
   if (!hasToken) {
     currentUser = null;
-    $("#user-name").textContent = "";
-    $("#user-menu").classList.remove("open");
+    const nameEl = $("#user-name");
+    if (nameEl) nameEl.textContent = "";
+    userMenu?.classList.remove("open");
     localStorage.removeItem(tokenKey);
   }
 }
@@ -162,7 +163,7 @@ function closeModal() {
   if (!m) return;
   m.classList.add("hidden");
   m.setAttribute("aria-hidden","true");
-  $("#review-editor").classList.add("hidden");
+  $("#review-editor")?.classList.add("hidden");
 }
 $("#modal-close")?.addEventListener("click", closeModal);
 
@@ -189,8 +190,15 @@ async function openBook(isbn) {
 function renderReviews(reviews) {
   const list = $("#reviews-list");
   list.innerHTML = "";
-  // Newest reviews appear at the top
-  Object.entries(reviews).forEach(([username, r]) => {
+
+  // Sort by createdAt desc if present, else by username just to be stable
+  const entries = Object.entries(reviews || {}).sort((a, b) => {
+    const ta = (a[1]?.createdAt) || 0;
+    const tb = (b[1]?.createdAt) || 0;
+    return tb - ta;
+  });
+
+  entries.forEach(([username, r]) => {
     const li = document.createElement("li");
     li.innerHTML = `
       <strong>${username}</strong> (${r.rating}★): ${r.text}
@@ -205,7 +213,7 @@ function renderReviews(reviews) {
       });
       li.appendChild(editBtn);
     }
-    list.prepend(li); // <-- changed from appendChild to prepend
+    list.appendChild(li);
   });
 }
 
@@ -270,13 +278,177 @@ $("#delete-review")?.addEventListener("click", async () => {
 });
 
 // ========= Search Suggestions =========
-// (unchanged from your version)
+const searchInput = $("#search-input");
+if (searchInput) {
+  const suggestionBox = document.createElement("div");
+  suggestionBox.className = "card";
+  suggestionBox.style.position = "absolute";
+  suggestionBox.style.width = "100%";
+  suggestionBox.style.left = "0";
+  suggestionBox.style.display = "none";
+  searchInput.parentElement.appendChild(suggestionBox);
+
+  searchInput.addEventListener("input", async () => {
+    const q = searchInput.value.trim();
+    if (!q) {
+      suggestionBox.style.display = "none";
+      return;
+    }
+    try {
+      const data = await fetchJSON(`/suggest/${encodeURIComponent(q)}`);
+      const suggestions = data.suggestions || [];
+      if (!suggestions.length) {
+        suggestionBox.style.display = "none";
+        return;
+      }
+      suggestionBox.innerHTML = "";
+      suggestions.forEach(s => {
+        const item = document.createElement("div");
+        item.className = "link";
+        item.textContent = `${s.title} (${s.author})`;
+        item.addEventListener("click", () => {
+          searchInput.value = s.title;
+          suggestionBox.style.display = "none";
+          loadCatalog(s.title);
+        });
+        suggestionBox.appendChild(item);
+      });
+      suggestionBox.style.display = "block";
+    } catch {
+      suggestionBox.style.display = "none";
+    }
+  });
+
+  searchInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      suggestionBox.style.display = "none";
+      loadCatalog(searchInput.value);
+    }
+  });
+}
 
 // ========= Navigation =========
-// (unchanged from your version)
+$("#nav-home")?.addEventListener("click", () => showPage("home"));
+$("#nav-catalog")?.addEventListener("click", () => { showPage("catalog"); loadCatalog(); });
+$("#nav-account")?.addEventListener("click", () => showPage("account"));
+$("#get-started")?.addEventListener("click", () => { showPage("catalog"); loadCatalog(); });
 
 // ========= Auth: Login, Register, Forgot =========
-// (unchanged from your version)
+
+// Login
+$("#login-btn")?.addEventListener("click", async () => {
+  const username = $("#login-username").value.trim();
+  const password = $("#login-password").value.trim();
+  if (!username || !password) {
+    $("#login-msg").textContent = "Please enter username and password.";
+    return;
+  }
+  try {
+    const data = await fetchJSON("/customer/login", {
+      method: "POST",
+      body: JSON.stringify({ username, password })
+    });
+    setAuthState({ username: data.username, token: data.accessToken });
+    showPage("catalog");
+    loadCatalog();
+  } catch (e) {
+    $("#login-msg").textContent = e.message;
+  }
+});
+
+// Register
+$("#register-btn")?.addEventListener("click", async () => {
+  const username = $("#register-username").value.trim();
+  const password = $("#register-password").value.trim();
+  if (!username || !password) {
+    $("#register-msg").textContent = "Please enter username and password.";
+    return;
+  }
+  try {
+    await fetchJSON("/customer/register", {
+      method: "POST",
+      body: JSON.stringify({ username, password })
+    });
+    const data = await fetchJSON("/customer/login", {
+      method: "POST",
+      body: JSON.stringify({ username, password })
+    });
+    setAuthState({ username: data.username, token: data.accessToken });
+    showPage("catalog");
+    loadCatalog();
+  } catch (e) {
+    $("#register-msg").textContent = e.message;
+  }
+});
+
+// Forgot Password
+let forgotStep = 1;
+$("#forgot-btn")?.addEventListener("click", async () => {
+  const username = $("#forgot-username").value.trim();
+  const newPasswordField = $("#forgot-password");
+  const msg = $("#forgot-msg");
+
+  if (forgotStep === 1) {
+    if (!username) {
+      msg.textContent = "Enter your username first.";
+      return;
+    }
+    try {
+      await fetchJSON("/customer/forgot", {
+        method: "POST",
+        body: JSON.stringify({ username })
+      });
+      msg.textContent = "Username valid. Enter a new password.";
+      newPasswordField.classList.remove("hidden");
+      forgotStep = 2;
+    } catch (e) {
+      msg.textContent = e.message;
+    }
+  } else {
+    const newPassword = newPasswordField.value.trim();
+    if (!newPassword) {
+      msg.textContent = "Please enter a new password.";
+      return;
+    }
+    try {
+      const data = await fetchJSON("/customer/reset", {
+        method: "POST",
+        body: JSON.stringify({ username, newPassword })
+      });
+      setAuthState({ username: data.username, token: data.accessToken });
+      msg.textContent = "Password reset successful.";
+      showPage("catalog");
+      loadCatalog();
+      forgotStep = 1;
+      newPasswordField.classList.add("hidden");
+    } catch (e) {
+      msg.textContent = e.message;
+    }
+  }
+});
+
+// Logout
+$("#logout-btn")?.addEventListener("click", (e) => {
+  e.preventDefault();
+  localStorage.removeItem(tokenKey);
+  setAuthState({ username: null, token: null });
+  showPage("home");
+});
 
 // ========= Init =========
-// (unchanged from your version)
+(async () => {
+  const token = localStorage.getItem(tokenKey);
+  if (!token) {
+    setAuthState({ username: null, token: null });
+    showPage("home");
+    return;
+  }
+  try {
+    const me = await fetchJSON("/customer/auth/me", { headers: authHeader() });
+    setAuthState({ username: me.username, token });
+  } catch {
+    localStorage.removeItem(tokenKey);
+    setAuthState({ username: null, token: null });
+  }
+  showPage("home");
+})();
