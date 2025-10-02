@@ -41,8 +41,12 @@ function showPage(id) {
   closeModal();
 
   // Clear sensitive inputs on navigation
-  ["login-username","login-password","register-username","register-password",
-   "forgot-username","forgot-password","search-input"].forEach(id=>{
+  [
+    "login-username","login-password",
+    "register-username","register-password",
+    "forgot-username","forgot-password",
+    "search-input"
+  ].forEach(id=>{
     const el = document.getElementById(id);
     if (el) el.value = "";
   });
@@ -266,57 +270,161 @@ $("#delete-review")?.addEventListener("click", async () => {
 
 // ========= Search Suggestions =========
 const searchInput = $("#search-input");
-const suggestionBox = document.createElement("div");
-suggestionBox.className = "card";
-suggestionBox.style.position = "absolute";
-suggestionBox.style.width = "100%";
-suggestionBox.style.left = "0";
-suggestionBox.style.display = "none";
-searchInput.parentElement.appendChild(suggestionBox);
+if (searchInput) {
+  const suggestionBox = document.createElement("div");
+  suggestionBox.className = "card";
+  suggestionBox.style.position = "absolute";
+  suggestionBox.style.width = "100%";
+  suggestionBox.style.left = "0";
+  suggestionBox.style.display = "none";
+  searchInput.parentElement.appendChild(suggestionBox);
 
-searchInput.addEventListener("input", async () => {
-  const q = searchInput.value.trim();
-  if (!q) {
-    suggestionBox.style.display = "none";
-    return;
-  }
-  try {
-    const data = await fetchJSON(`/suggest/${encodeURIComponent(q)}`);
-    const suggestions = data.suggestions || [];
-    if (!suggestions.length) {
+  searchInput.addEventListener("input", async () => {
+    const q = searchInput.value.trim();
+    if (!q) {
       suggestionBox.style.display = "none";
       return;
     }
-    suggestionBox.innerHTML = "";
-    suggestions.forEach(s => {
-      const item = document.createElement("div");
-      item.className = "link";
-      item.textContent = `${s.title} (${s.author})`;
-      item.addEventListener("click", () => {
-        searchInput.value = s.title;
+    try {
+      const data = await fetchJSON(`/suggest/${encodeURIComponent(q)}`);
+      const suggestions = data.suggestions || [];
+      if (!suggestions.length) {
         suggestionBox.style.display = "none";
-        loadCatalog(s.title);
+        return;
+      }
+      suggestionBox.innerHTML = "";
+      suggestions.forEach(s => {
+        const item = document.createElement("div");
+        item.className = "link";
+        item.textContent = `${s.title} (${s.author})`;
+        item.addEventListener("click", () => {
+          searchInput.value = s.title;
+          suggestionBox.style.display = "none";
+          loadCatalog(s.title);
+        });
+        suggestionBox.appendChild(item);
       });
-      suggestionBox.appendChild(item);
-    });
-    suggestionBox.style.display = "block";
-  } catch {
-    suggestionBox.style.display = "none";
-  }
-});
+      suggestionBox.style.display = "block";
+    } catch {
+      suggestionBox.style.display = "none";
+    }
+  });
 
-searchInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    suggestionBox.style.display = "none";
-    loadCatalog(searchInput.value);
-  }
-});
+  searchInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      suggestionBox.style.display = "none";
+      loadCatalog(searchInput.value);
+    }
+  });
+}
 
 // ========= Navigation =========
 $("#nav-home")?.addEventListener("click", () => showPage("home"));
 $("#nav-catalog")?.addEventListener("click", () => { showPage("catalog"); loadCatalog(); });
 $("#nav-account")?.addEventListener("click", () => showPage("account"));
 $("#get-started")?.addEventListener("click", () => { showPage("catalog"); loadCatalog(); });
+
+// ========= Auth: Login, Register, Forgot =========
+
+// Login
+$("#login-btn")?.addEventListener("click", async () => {
+  const username = $("#login-username").value.trim();
+  const password = $("#login-password").value.trim();
+  if (!username || !password) {
+    $("#login-msg").textContent = "Please enter username and password.";
+    return;
+  }
+  try {
+    const data = await fetchJSON("/customer/login", {
+      method: "POST",
+      body: JSON.stringify({ username, password })
+    });
+    setAuthState({ username: data.username, token: data.accessToken });
+    showPage("catalog");
+    loadCatalog();
+  } catch (e) {
+    $("#login-msg").textContent = e.message;
+  }
+});
+
+// Register
+$("#register-btn")?.addEventListener("click", async () => {
+  const username = $("#register-username").value.trim();
+  const password = $("#register-password").value.trim();
+  if (!username || !password) {
+    $("#register-msg").textContent = "Please enter username and password.";
+    return;
+  }
+  try {
+    await fetchJSON("/customer/register", {
+      method: "POST",
+      body: JSON.stringify({ username, password })
+    });
+    const data = await fetchJSON("/customer/login", {
+      method: "POST",
+      body: JSON.stringify({ username, password })
+    });
+    setAuthState({ username: data.username, token: data.accessToken });
+    showPage("catalog");
+    loadCatalog();
+  } catch (e) {
+    $("#register-msg").textContent = e.message;
+  }
+});
+
+// Forgot Password
+let forgotStep = 1;
+$("#forgot-btn")?.addEventListener("click", async () => {
+  const username = $("#forgot-username").value.trim();
+  const newPasswordField = $("#forgot-password");
+  const msg = $("#forgot-msg");
+
+  if (forgotStep === 1) {
+    if (!username) {
+      msg.textContent = "Enter your username first.";
+      return;
+    }
+    try {
+      await fetchJSON("/customer/forgot", {
+        method: "POST",
+        body: JSON.stringify({ username })
+      });
+      msg.textContent = "Username valid. Enter a new password.";
+      newPasswordField.classList.remove("hidden");
+      forgotStep = 2;
+    } catch (e) {
+      msg.textContent = e.message;
+    }
+  } else {
+    const newPassword = newPasswordField.value.trim();
+    if (!newPassword) {
+      msg.textContent = "Please enter a new password.";
+      return;
+    }
+    try {
+      const data = await fetchJSON("/customer/reset", {
+        method: "POST",
+        body: JSON.stringify({ username, newPassword })
+      });
+      setAuthState({ username: data.username, token: data.accessToken });
+      msg.textContent = "Password reset successful.";
+      showPage("catalog");
+      loadCatalog();
+      forgotStep = 1;
+      newPasswordField.classList.add("hidden");
+    } catch (e) {
+      msg.textContent = e.message;
+    }
+  }
+});
+
+// Logout
+$("#logout-btn")?.addEventListener("click", (e) => {
+  e.preventDefault();
+  localStorage.removeItem(tokenKey);
+  setAuthState({ username: null, token: null });
+  showPage("home");
+});
 
 // ========= Init =========
 (async () => {
