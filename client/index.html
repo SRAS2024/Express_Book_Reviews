@@ -40,7 +40,11 @@
     <section id="catalog" class="hidden">
       <div class="toolbar card">
         <div class="search-bar">
-          <input id="search-input" class="input" placeholder="Search by title, author, ISBN, or genre" aria-label="Search books" />
+          <!-- Wrapped input in a container so suggestions anchor correctly -->
+          <div class="input-wrapper" style="position:relative; flex:1;">
+            <input id="search-input" class="input" placeholder="Search by title, author, ISBN, or genre" aria-label="Search books" />
+            <!-- Suggestions dropdown will be dynamically inserted here -->
+          </div>
           <button class="btn-primary" onclick="loadCatalog(document.getElementById('search-input').value)">Search</button>
           <button class="btn-secondary" onclick="document.getElementById('search-input').value=''; loadCatalog();">Clear</button>
         </div>
