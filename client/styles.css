@@ -1,15 +1,270 @@
-/* Suggestions */
-#search-input + div.card {
+:root {
+  --bg: #0f172a;
+  --card: #111827;
+  --muted: #9ca3af;
+  --text: #f1f5f9;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --danger: #ef4444;
+  --danger-hover: #dc2626;
+  --radius: 12px;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  --transition: 0.25s ease;
+}
+
+/* Reset */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  font-size: 16px;
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.6;
+}
+
+/* Headings */
+h1, h2, h3, h4 { margin: 0 0 8px; font-weight: 600; }
+h2 { font-size: 20px; margin-bottom: 12px; }
+h4 { font-size: 16px; color: var(--accent); }
+
+/* Utility */
+.hidden { display: none !important; }
+.muted { color: var(--muted); }
+.row { display: flex; gap: 8px; align-items: center; margin-top: 8px; }
+.list { list-style: none; margin: 0; padding: 0; }
+.list li { margin-bottom: 16px; line-height: 1.5; }
+.msg { min-height: 20px; color: var(--muted); }
+.link { color: var(--accent); cursor: pointer; text-decoration: underline; }
+
+/* Header and footer */
+.site-header, .site-footer {
+  padding: 16px 24px;
+  background: rgba(17, 24, 39, 0.95);
+  backdrop-filter: blur(8px);
+  box-shadow: var(--shadow);
+}
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.site-footer {
+  text-align: center;
+  color: var(--muted);
+  font-size: 14px;
+}
+.logo { font-weight: 700; letter-spacing: -0.5px; font-size: 22px; }
+
+/* Navigation */
+.nav { display: flex; align-items: center; gap: 12px; }
+
+/* Cards */
+.card {
+  background: var(--card);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 18px;
+  padding: 20px;
+  margin: 16px 24px;
+  box-shadow: var(--shadow);
+  transition: var(--transition);
+}
+
+/* Buttons */
+.btn, .btn-primary, .btn-secondary, .btn-danger, .btn-close {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 14px;
+}
+.btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn-primary:hover { background: var(--accent-hover); }
+
+.btn-secondary {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.25);
+}
+.btn-secondary:hover { background: rgba(59, 130, 246, 0.2); }
+
+.btn-danger {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+.btn-danger:hover { background: var(--danger-hover); }
+
+.btn-close {
+  float: right;
+  font-size: 22px;
+  line-height: 1;
+  padding: 4px 8px;
+  background: transparent;
+  border: none;
+  color: var(--muted);
+}
+.btn-close:hover { color: var(--danger); }
+
+/* Inputs */
+.input {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: var(--radius);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--text);
+  transition: var(--transition);
+}
+.input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: rgba(0, 0, 0, 0.35);
+}
+.input.error { border-color: var(--danger); box-shadow: 0 0 4px var(--danger); }
+
+/* Toolbar and search */
+.toolbar {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  position: relative;
+}
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  width: 100%;
+}
+.search-bar input { flex: 1; }
+.toolbar-buttons { display: flex; gap: 6px; }
+
+/* Suggestions dropdown
+   Your app.js appends a child .card into .search-bar.
+   Style that child so it spans the whole toolbar width. */
+.search-bar > .card:not(.search-bar) {
   position: absolute;
   top: calc(100% + 6px);
   left: 0;
   right: 0;
-  width: 100%;            /* ensure full alignment with the bar */
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--radius);
   padding: 4px 0;
   background: var(--card);
-  max-height: 200px;
+  max-height: 240px;
   overflow-y: auto;
   box-shadow: var(--shadow);
+  z-index: 50;
+}
+.search-bar > .card:not(.search-bar) .link {
+  display: block;
+  padding: 10px 14px;
+  color: var(--text);
+}
+.search-bar > .card:not(.search-bar) .link:hover {
+  background: rgba(59, 130, 246, 0.15);
+}
+
+/* Catalog grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 20px;
+  padding: 24px;
+}
+.tile {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--radius);
+  padding: 16px;
+  background: rgba(255, 255, 255, 0.05);
+  transition: var(--transition);
+}
+.tile:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+.tile h4 { margin: 6px 0; }
+.tile p { color: var(--muted); margin: 0 0 6px; }
+
+/* View more */
+#more-books { margin-top: 12px; min-width: 140px; border-radius: var(--radius); }
+
+/* Modal */
+#book-modal.hidden { display: none !important; }
+.modal[aria-hidden="true"] { display: none !important; }
+
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+.modal-content {
+  width: min(800px, 92vw);
+  max-height: 88vh;
+  overflow-y: auto;
+  background: var(--card);
+  border-radius: 20px;
+  box-shadow: var(--shadow);
+  padding: 20px;
+}
+
+/* Account dropdown */
+.dropdown { display: inline-block; position: relative; }
+.dropdown-content {
+  display: none;
+  position: absolute;
+  right: 0;
+  margin-top: 8px;
+  background: var(--card);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--radius);
+  padding: 8px;
+  min-width: 140px;
+  z-index: 60;
+}
+.dropdown.open .dropdown-content { display: block; }
+
+/* Stars */
+.stars { display: inline-flex; gap: 6px; }
+.star { font-size: 22px; cursor: pointer; color: #475569; user-select: none; }
+.star.active { color: #fbbf24; }
+
+/* Review editor layout
+   Keep delete as a red icon button in the top right of the editor.
+   Works with your current HTML without changes. */
+#review-editor {
+  position: relative;
+  padding-top: 8px;
+}
+#review-editor .row { margin-top: 10px; }
+#delete-review {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  padding: 6px 10px;
+}
+
+/* Review list edit affordance spacing */
+#reviews-list .link { margin-left: 8px; }
+
+/* Small screens */
+@media (max-width: 560px) {
+  .site-header { padding: 12px 16px; }
+  .card { margin: 12px 12px; padding: 16px; }
+  .grid { gap: 16px; padding: 16px; }
+  .modal-content { width: 94vw; }
 }
